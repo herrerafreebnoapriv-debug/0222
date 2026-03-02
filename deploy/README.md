@@ -72,6 +72,19 @@ chmod +x deploy/gen-self-signed-cert.sh
    docker compose -f deploy/docker-compose.yml ps
    ```
 
+## 代码更新后使改动生效
+
+本机已推送到 GitHub 后，在**远程机**上拉取并重建容器即可让新代码生效：
+
+```bash
+cd /www/wwwroot/0222   # 或 /opt/0222、你的项目根目录
+git pull origin main
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+- **api**：会重新构建并重启，新接口与逻辑生效。
+- **admin / web**：若 compose 将 `admin-test-UI` / 用户端页面挂载为静态目录，拉取后刷新浏览器即可；若通过镜像构建进容器，则 `--build` 会更新页面。
+
 ## 访问方式
 
 **推荐（HTTPS 标准端口，不加端口）**：启动后使用 **https://** 域名访问，满足平台对标准 HTTPS 的要求。  
