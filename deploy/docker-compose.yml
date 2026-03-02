@@ -3,8 +3,6 @@
 #   docker compose -f deploy/docker-compose.yml up -d --build
 # 推荐：通过反向代理用域名访问（不加端口），见 proxy 服务与 deploy/README.md。
 
-version: "3.9"
-
 services:
   proxy:
     build:
@@ -17,6 +15,7 @@ services:
       - "443:443"
     volumes:
       - ./certs:/etc/nginx/certs:ro
+      - ./certbot-webroot:/var/www/certbot:ro
     networks:
       - mop-net
     depends_on:

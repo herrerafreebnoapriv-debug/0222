@@ -3,8 +3,9 @@ import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/core/device_info_service.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
 import 'package:mop_app/screens/credential_screen.dart';
+import 'package:mop_app/utils/country_codes.dart';
 
-/// 资料补全页：国家码、手机号、用户名、昵称、密码、可选邀请码；提交 enroll（规约 2.1）
+/// 资料补全页：国家/地区下拉、手机号（同行）、用户名、昵称、密码、可选邀请码；提交 enroll（规约 2.1）
 class EnrollScreen extends StatefulWidget {
   const EnrollScreen({super.key});
 
@@ -14,7 +15,7 @@ class EnrollScreen extends StatefulWidget {
 
 class _EnrollScreenState extends State<EnrollScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _countryController = TextEditingController(text: '+86');
+  String _selectedCountryCode = '+86';
   final _phoneController = TextEditingController();
   final _usernameController = TextEditingController();
   final _nicknameController = TextEditingController();
@@ -27,7 +28,6 @@ class _EnrollScreenState extends State<EnrollScreen> {
 
   @override
   void dispose() {
-    _countryController.dispose();
     _phoneController.dispose();
     _usernameController.dispose();
     _nicknameController.dispose();
@@ -50,7 +50,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
       final deviceId = await DeviceInfoService.getDeviceId();
       final deviceInfo = await DeviceInfoService.getDeviceInfoMap();
       final payload = EnrollPayload(
-        countryCode: _countryController.text.trim(),
+        countryCode: _selectedCountryCode,
         phone: _phoneController.text.trim(),
         username: _usernameController.text.trim(),
         nickname: _nicknameController.text.trim(),
@@ -101,26 +101,49 @@ class _EnrollScreenState extends State<EnrollScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(
-                  controller: _countryController,
-                  decoration: InputDecoration(
-                    labelText: l10n.countryCode,
-                    border: const OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? null : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: InputDecoration(
-                    labelText: l10n.phone,
-                    border: const OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? ' ' : null,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      child: DropdownButtonFormField<String>(
+                        value: kCountryCodes.any((c) => c.code == _selectedCountryCode)
+                            ? _selectedCountryCode
+                            : kCountryCodes.first.code,
+                        decoration: InputDecoration(
+                          labelText: l10n.countryCode,
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: kCountryCodes.map((c) {
+                          final isZh = Localizations.localeOf(context).languageCode == 'zh';
+                          return DropdownMenuItem<String>(
+                            value: c.code,
+                            child: Text(
+                              '${c.displayName(isZh)} ${c.code}',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v != null) setState(() => _selectedCountryCode = v);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(
+                          labelText: l10n.phone,
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        validator: (v) =>
+                            v == null || v.trim().isEmpty ? ' ' : null,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 TextFormField(

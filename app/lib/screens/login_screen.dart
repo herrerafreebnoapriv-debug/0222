@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
+import 'package:mop_app/utils/permission_helper.dart';
 
 /// 登录页：用户须知 + 勾选「已阅读并同意」+ 手机号或用户名 + 密码（规约：勾选后登录按钮可用）
 class LoginScreen extends StatefulWidget {
@@ -73,6 +74,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result.isSuccess) {
         if (_termsAccepted) await _api.setTermsAcceptedVersion(1);
         if (!mounted) return;
+        final ok = await ensurePermissionsForMain(context);
+        if (!mounted || !ok) {
+          if (mounted) setState(() => _loading = false);
+          return;
+        }
         Navigator.of(context).pushReplacementNamed('/main');
       } else {
         final unavailable = await _api.isApiUnavailable();

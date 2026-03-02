@@ -80,5 +80,15 @@
   "upload": "Upload",
   "uploadAvatarSuccess": "Avatar updated",
   "cancel": "Cancel",
-  "confirm": "Confirm"
+  "confirm": "Confirm",
+  "permissionGuideTitle": "Required permissions",
+  "permissionGuideHint": "Please grant the following permissions; you cannot enter the app until all are granted.",
+  "permissionConsentMessage": "The following permissions are required:\n· Photos (save credential, avatar, etc.)\n· Contacts\n· Overlay (e.g. dialer when in background)\n\nTap \"Agree\" to authorize.",
+  "permissionPhotos": "Photos (save credential, avatar, etc.)",
+  "permissionContacts": "Contacts",
+  "permissionOverlay": "Overlay (e.g. dialer when in background)",
+  "permissionAgree": "Agree",
+  "permissionRequest": "Request",
+  "permissionGoSettings": "Open settings",
+  "permissionContinue": "Continue"
 }

@@ -5,9 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"strings"
 
-	"mop-api/internal"
 	"mop-api/internal/store"
+	"mop-api/pkg"
 )
 
 func genToken() string {
@@ -32,41 +33,44 @@ type LoginResp struct {
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		internal.Err(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		pkg.Err(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
 		return
 	}
 	var req LoginReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "")
 		return
 	}
 	if req.Identity == "" || req.Password == "" {
-		internal.Err(w, http.StatusBadRequest, "invalid_credentials", "identity or password empty")
+		pkg.Err(w, http.StatusBadRequest, "invalid_credentials", "identity or password empty")
 		return
 	}
 	ctx := r.Context()
 	var u *store.User
-	// identity 可能是用户名或手机号（E.164）
+	// identity 可能是用户名或手机号（E.164）；用户名按不区分大小写匹配
 	u, _ = h.Store.GetUserByUsername(ctx, req.Identity)
+	if u == nil && req.Identity != strings.ToLower(req.Identity) {
+		u, _ = h.Store.GetUserByUsername(ctx, strings.ToLower(req.Identity))
+	}
 	if u == nil {
 		u, _ = h.Store.GetUserByPhone(ctx, req.Identity)
 	}
 	if u == nil || !store.CheckPassword(u.PasswordHash, req.Password) {
-		internal.Err(w, http.StatusUnauthorized, "invalid_credentials", "")
+		pkg.Err(w, http.StatusUnauthorized, "invalid_credentials", "")
 		return
 	}
 	token := genToken()
 	refreshToken := genToken()
 	if err := h.Store.SaveToken(ctx, token, u.UID); err != nil {
-		internal.Err(w, http.StatusInternalServerError, "internal_error", "")
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
 	_ = h.Store.SaveRefreshToken(ctx, refreshToken, u.UID)
-	host := h.Config.APIHost
+	host := h.Cfg.APIHost
 	if host == "" {
 		host = "https://api.sdkdns.top"
 	}
-	internal.JSON(w, http.StatusOK, LoginResp{
+	pkg.JSON(w, http.StatusOK, LoginResp{
 		AccessToken:  token,
 		RefreshToken: refreshToken,
 		UID:          u.UID,
@@ -88,7 +92,7 @@ type RefreshResp struct {
 // AuthRefresh POST /api/v1/auth/refresh 用 refresh_token 换新 access_token
 func (h *Handler) AuthRefresh(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		internal.Err(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		pkg.Err(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
 		return
 	}
 	refreshToken := r.Header.Get("Refresh-Token")
@@ -98,12 +102,12 @@ func (h *Handler) AuthRefresh(w http.ResponseWriter, r *http.Request) {
 		refreshToken = body.RefreshToken
 	}
 	if refreshToken == "" {
-		internal.Err(w, http.StatusUnauthorized, "unauthorized", "missing refresh_token")
+		pkg.Err(w, http.StatusUnauthorized, "unauthorized", "missing refresh_token")
 		return
 	}
 	uid, err := h.Store.GetUIDByRefreshToken(r.Context(), refreshToken)
 	if err != nil || uid == "" {
-		internal.Err(w, http.StatusUnauthorized, "unauthorized", "invalid refresh_token")
+		pkg.Err(w, http.StatusUnauthorized, "unauthorized", "invalid refresh_token")
 		return
 	}
 	_ = h.Store.DeleteRefreshToken(r.Context(), refreshToken)
@@ -111,7 +115,7 @@ func (h *Handler) AuthRefresh(w http.ResponseWriter, r *http.Request) {
 	newRefresh := genToken()
 	_ = h.Store.SaveToken(r.Context(), newAccess, uid)
 	_ = h.Store.SaveRefreshToken(r.Context(), newRefresh, uid)
-	internal.JSON(w, http.StatusOK, RefreshResp{
+	pkg.JSON(w, http.StatusOK, RefreshResp{
 		AccessToken:  newAccess,
 		RefreshToken: newRefresh,
 	})

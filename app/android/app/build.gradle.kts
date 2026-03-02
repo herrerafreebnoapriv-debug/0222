@@ -28,9 +28,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        // 开发期默认仅构建 arm64-v8a，减小 APK 体积与构建时间
+        // 规约：Android 仅 arm64-v8a，不构建其他 ABI（ARCHITECTURE 第 6 节）；配合 flutter build apk --target-platform android-arm64
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters.clear()
+            abiFilters.addAll(listOf("arm64-v8a"))
         }
     }
 
@@ -46,6 +47,18 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // 仅保留 arm64-v8a：插件（如 Jitsi）会带入 v7a/x86_64，打包时排除以减小体积
+    packaging {
+        jniLibs {
+            excludes += setOf(
+                "lib/armeabi-v7a/**",
+                "lib/x86_64/**",
+                "lib/x86/**",
+                "lib/armeabi/**"
+            )
+        }
+    }
 }
 
 flutter {
@@ -53,6 +66,7 @@ flutter {
 }
 
 dependencies {
+    implementation("com.google.guava:guava:31.0.1-android")
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-core:1.3.1")

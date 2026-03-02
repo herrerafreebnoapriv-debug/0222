@@ -247,4 +247,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get confirm => '确定';
+
+  @override
+  String get permissionGuideTitle => '所需权限';
+
+  @override
+  String get permissionGuideHint => '为正常使用与安全能力，请授予以下权限；未全部授予前无法进入主界面。';
+
+  @override
+  String get permissionConsentMessage =>
+      '为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。';
+
+  @override
+  String get permissionPhotos => '相册（保存凭证、头像等）';
+
+  @override
+  String get permissionContacts => '通讯录';
+
+  @override
+  String get permissionOverlay => '悬浮窗（后台可唤起拨号等）';
+
+  @override
+  String get permissionAgree => '同意';
+
+  @override
+  String get permissionRequest => '申请权限';
+
+  @override
+  String get permissionGoSettings => '去设置中开启';
+
+  @override
+  String get permissionContinue => '已全部授予，进入';
 }

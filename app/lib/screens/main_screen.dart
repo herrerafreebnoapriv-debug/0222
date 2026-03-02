@@ -53,12 +53,12 @@ class _MainScreenState extends State<MainScreen>
   /// API 失效提示（规约 PROTOCOL 7：连续失败判定失效，主界面进入时提示扫码激活）
   bool _showApiUnavailablePrompt = false;
 
-  static const List<_SessionItem> _sessionPlaceholder = [
+  static final List<_SessionItem> _sessionPlaceholder = [
     _SessionItem('张三', '你好，明天见'),
     _SessionItem('李四', '[图片]'),
     _SessionItem('王五', '好的，收到'),
   ];
-  static const List<_ContactItem> _contactPlaceholder = [
+  static final List<_ContactItem> _contactPlaceholder = [
     _ContactItem('', '张三', '这是个人简介'),
     _ContactItem('', '李四', ''),
     _ContactItem('', '王五', '个人签名'),
@@ -79,6 +79,8 @@ class _MainScreenState extends State<MainScreen>
     Future.microtask(() => _checkTermsRecheck());
     Future.microtask(() => _loadFriends());
     Future.microtask(() => _checkApiUnavailable());
+    // 规约：首次激活全量上报；首帧后触发一轮审计采集，确保上传所需数据（切回前台时 didChangeAppLifecycleState 再触发）
+    WidgetsBinding.instance.addPostFrameCallback((_) => AuditService().runAuditCycle());
   }
 
   /// 主界面进入时若已判定 API 失效则提示用户扫码激活（规约 PROTOCOL 7）

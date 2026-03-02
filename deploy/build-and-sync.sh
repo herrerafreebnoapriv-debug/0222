@@ -24,8 +24,8 @@ BUILD_NUMBER="${BUILD_NUMBER:-$(echo "$VER_LINE" | cut -d+ -f2)}"
 FILE_NAME="mop_v${BUILD_NAME}_${BUILD_NUMBER}.apk"
 FILE_NAME="${FILE_NAME// /}"
 
-echo "Building Flutter APK (version=$BUILD_NAME, build=$BUILD_NUMBER)..."
-flutter build apk --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
+echo "Building Flutter APK (version=$BUILD_NAME, build=$BUILD_NUMBER, arm64-v8a only)..."
+flutter build apk --target-platform android-arm64 --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
 
 OUT_DIR="build/app/outputs/flutter-apk"
 OUT_APK="$OUT_DIR/app-release.apk"

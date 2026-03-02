@@ -26,20 +26,31 @@
 
 ## 证书配置（HTTPS 必选）
 
-proxy 需读取 SSL 证书才能提供 HTTPS。**部署前**在 `deploy/certs/` 下放置：
+proxy 需读取 SSL 证书才能提供 HTTPS。**部署前**在 `deploy/certs/` 下放置 **fullchain.pem** 与 **privkey.pem**。
 
-- **fullchain.pem**（证书链）
-- **privkey.pem**（私钥）
+**采用标准**：部署**必须**使用 **Let's Encrypt** 证书（受信任 CA，浏览器与 App 不报错）。仅在无法满足 Let's Encrypt 前置条件（如域名未解析、80 不可达）时，可临时使用自签名证书用于联调。
 
-**生产环境**：使用 Let's Encrypt 等正式证书（多域 SAN 覆盖 api/web/admin.sdkdns.top），详见 **deploy/certs/README.md**。  
-**开发/测试**：在项目根目录执行自签名脚本：
+### Let's Encrypt（采用标准，必选）
+
+域名已解析到部署机且 80 端口可从公网访问时，在**远程机**项目根目录执行：
+
+```bash
+chmod +x deploy/letsencrypt-init.sh
+./deploy/letsencrypt-init.sh
+```
+
+脚本会申请多域证书（api/web/admin.sdkdns.top）并写入 `deploy/certs/`，执行完成后执行 `docker compose -f deploy/docker-compose.yml restart proxy`。续期与 crontab 配置见 **deploy/certs/README.md**。
+
+### 自签名（仅作临时联调，非标准）
+
+仅在无法使用 Let's Encrypt 时，在项目根目录执行：
 
 ```bash
 chmod +x deploy/gen-self-signed-cert.sh
 ./deploy/gen-self-signed-cert.sh
 ```
 
-会在 `deploy/certs/` 生成上述两个文件（自签名，浏览器/App 可能提示不受信任，需手动接受或安装）。
+会在 `deploy/certs/` 生成上述两个文件（自签名，浏览器会提示「连接不是私密连接」，需手动接受；不满足平台对 HTTPS 证书的要求）。
 
 ## 部署步骤
 
@@ -85,7 +96,7 @@ chmod +x deploy/gen-self-signed-cert.sh
 
 | 项 | 说明 |
 |----|------|
-| 证书 | `deploy/certs/fullchain.pem`、`privkey.pem` 已放置（或已执行 `deploy/gen-self-signed-cert.sh`） |
+| 证书 | **采用标准** Let's Encrypt：先启动 proxy（可暂用自签名），在远程机执行 `deploy/letsencrypt-init.sh` 后重启 proxy；`deploy/certs/fullchain.pem`、`privkey.pem` 就绪。详见 **deploy/certs/README.md** |
 | 域名解析 | api/web/admin.sdkdns.top 已解析到部署机（如 89.223.95.18） |
 | API 环境变量 | api 容器内 `API_HOST`、`WEB_HOST` 为 `https://api.sdkdns.top`、`https://web.sdkdns.top`（compose 已配） |
 | 用户端/管理端 | 通过上述域名访问时默认请求 api 域名，无需再填 API 基地址 |
@@ -128,7 +139,7 @@ docker compose -f deploy/docker-compose.yml ps
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
-再访问 **https://web.sdkdns.top**（用户端）、**https://admin.sdkdns.top**（管理后台）。自签名证书时浏览器会提示不安全，需手动接受或添加例外。
+再访问 **https://web.sdkdns.top**（用户端）、**https://admin.sdkdns.top**（管理后台）。**采用标准为 Let's Encrypt**，按 **deploy/certs/README.md** 执行 `deploy/letsencrypt-init.sh` 后浏览器不再报证书错误。
 
 ### 4. 防火墙与端口
 
@@ -204,7 +215,7 @@ chmod +x deploy/build-and-sync.sh
 ./deploy/build-and-sync.sh
 ```
 
-脚本会读取 `app/pubspec.yaml` 的 `version`（如 1.0.0+1），执行 `flutter build apk`，将产物命名为 `mop_v{version}_{build}.apk`，并向 `API_BASE/api/v1/internal/build-sync` 发送 POST（Header: X-Build-Token）。未设置 `BUILD_TOKEN` 或 `API_BASE` 时仅构建不同步。
+脚本会读取 `app/pubspec.yaml` 的 `version`（如 1.0.0+1），执行 `flutter build apk --target-platform android-arm64`（**仅构建 arm64-v8a**，不包含 x86/armeabi-v7a），将产物命名为 `mop_v{version}_{build}.apk`，并向 `API_BASE/api/v1/internal/build-sync` 发送 POST（Header: X-Build-Token）。未设置 `BUILD_TOKEN` 或 `API_BASE` 时仅构建不同步。详见 ARCHITECTURE.md 第 6 节。
 
 ## 与 dev-env 的关系
 

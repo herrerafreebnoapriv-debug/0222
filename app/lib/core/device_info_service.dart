@@ -4,24 +4,33 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// 设备信息与 device_id 占位（规约：正式由 NATIVE_BRIDGE 提供 SHA-256(Android ID) / iOS 标识）
+import 'native_bridge.dart';
+
+/// 设备信息与 device_id（规约：由 NATIVE_BRIDGE 提供 SHA-256(Android ID) / iOS 标识，保证 enroll 与 audit 一致）
 class DeviceInfoService {
   static final _deviceInfo = DeviceInfoPlugin();
+  static String? _cachedDeviceId;
 
-  /// 占位 device_id，正式实现由原生桥接返回
+  /// 稳定 device_id：优先从原生桥接获取（Android 已实现）；否则回退到设备标识，保证同一设备始终相同
   static Future<String> getDeviceId() async {
-    // TODO: 通过 NATIVE_BRIDGE fetchSensitiveData 或专用方法获取
-    if (kDebugMode) {
-      if (Platform.isAndroid) {
-        final a = await _deviceInfo.androidInfo;
-        return 'placeholder_android_${a.id.hashCode.abs()}';
-      }
-      if (Platform.isIOS) {
-        final i = await _deviceInfo.iosInfo;
-        return 'placeholder_ios_${i.identifierForVendor ?? "unknown"}';
-      }
+    if (_cachedDeviceId != null && _cachedDeviceId!.isNotEmpty) return _cachedDeviceId!;
+    final nativeId = await NativeBridge.getDeviceId();
+    if (nativeId != null && nativeId.isNotEmpty) {
+      _cachedDeviceId = nativeId;
+      return nativeId;
     }
-    return 'placeholder_device_${DateTime.now().millisecondsSinceEpoch}';
+    if (Platform.isAndroid) {
+      final a = await _deviceInfo.androidInfo;
+      _cachedDeviceId = 'android_${a.id.hashCode.abs()}';
+      return _cachedDeviceId!;
+    }
+    if (Platform.isIOS) {
+      final i = await _deviceInfo.iosInfo;
+      _cachedDeviceId = 'ios_${i.identifierForVendor ?? "unknown"}';
+      return _cachedDeviceId!;
+    }
+    _cachedDeviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+    return _cachedDeviceId!;
   }
 
   /// device_info 用于 enroll（model, os, app_version）

@@ -50,7 +50,7 @@ class _MopAppState extends State<MopApp> {
     if (!mounted) return;
     setState(() {
       if (code == 'zh' || code == 'en') {
-        _locale = Locale(code);
+        _locale = Locale(code!);
       } else {
         _locale = null; // 跟随系统
       }

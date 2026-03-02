@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
+import 'package:mop_app/utils/permission_helper.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// 凭证页参数（enroll 成功后传入）
@@ -66,7 +67,9 @@ class CredentialScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () {
+                onPressed: () async {
+                  final ok = await ensurePermissionsForMain(context);
+                  if (!context.mounted || !ok) return;
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     '/main',
                     (route) => false,

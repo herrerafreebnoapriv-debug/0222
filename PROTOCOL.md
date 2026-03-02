@@ -89,7 +89,17 @@ Payload: AES-256-GCM 加密的二进制（格式由实现约定，建议含 type
 3.3 远程采集结果上报（拍照/录像/录音）
 由远程指令 mop.cmd.capture.photo / mop.cmd.capture.video / mop.cmd.capture.audio 触发的采集结果，**以实际文件**（图片、视频、音频二进制）在 Isolate 中加密后，经 **POST /api/v1/audit/upload** 上报，type 标明 capture_photo / capture_video / capture_audio；与 3.2 共用同一端点与加密规范。**录像、录音**约定时长为 18 秒；若未满 18 秒被中断，**已录制的实际媒体文件**仍须上传，不得仅上传描述性元数据。服务端按 device_id、msg_id（或 request_id）与 type 存储并供管理端按设备查询、下载。
 
-4. 远程管控指令集 (Remote Commands)指令通过 WebSocket (实时) 或厂商推送 (静默) 下发。4.1 指令基本结构JSON{
+4. 远程管控指令集 (Remote Commands)
+指令通过 WebSocket (实时) 或厂商推送 (静默) 下发；**无长连/推送时**可由设备轮询拉取待执行指令。
+
+**设备拉取待执行指令（轮询兜底）**  
+- Endpoint: GET /api/v1/device/commands?device_id=xxx  
+- 鉴权：用户端 Bearer Token（与 auth/login 一致）。  
+- 仅返回**当前用户名下该 device_id** 的待执行指令；设备不属于当前用户时返回 403（forbidden）。  
+- 响应 200：{ "items": [ { "msg_id", "cmd", "params" } ] }。  
+- **消费语义**：服务端在返回该批指令后即从待执行列表中删除（消费），同一条指令只会被拉取一次，避免重复执行。
+
+4.1 指令基本结构JSON{
   "msg_id": "UUID",
   "target_device_id": "DEVICE_HASH",
   "cmd": "COMMAND_NAME",
@@ -127,6 +137,10 @@ Payload (JSON): {
 管理后台（admin）从 **api** 获取设备、用户、关系等数据，并可通过 api 下发远程指令。**Host 为 api 域名**（如 api.sdkdns.top）；鉴权与用户端 auth/login 分离，采用**管理端专用 Token 或 API Key**（由实现约定，如 Authorization: Bearer &lt;admin_token&gt; 或 X-Admin-Token）。以下为建议路径与语义，实现时可按需增删字段或分页参数。
 
 **鉴权**：请求 Header 携带管理端凭证；缺失或无效时 api 返回 **401** 或 **403**，body 含 code（如 unauthorized、forbidden）、message。
+
+**管理端登录验证码（防暴力破解）**  
+- 获取验证码（无需鉴权）：GET /api/v1/admin/captcha。响应 200：{ "captcha_id": "hex 字符串", "gap_x": 整数 }（gap_x 为滑动拼图缺口横坐标，与前端 PUZZLE_W/PIECE_W 一致）。服务端将 captcha_id 与 gap_x 存于内存并设短 TTL（如 5 分钟），一次校验后即失效。  
+- 登录时校验：POST /api/v1/admin/auth 的 Body 除 username、password 外须包含 "captcha_id"、"captcha_value"（整数，为滑块最终位置）。服务端先校验 |captcha_value - gap_x| ≤ 容差且 captcha_id 有效，通过后删除该验证码再校验账密；否则返回 400，body 含 code：**captcha_invalid**、message（如「验证码错误或已失效，请刷新后重试」）。
 
 **设备列表**  
 - Endpoint: GET /api/v1/admin/devices  
@@ -178,7 +192,7 @@ Payload (JSON): {
   - **约定**：各端（Android、iOS、api）必须使用上述 HKDF-SHA256 与 info，salt 策略一致（若服务端下发 salt 则客户端与 api 均使用该 salt），否则服务端无法正确解密审计包。
 
 7. 通用错误响应与重试 (Common Error Response & Retry)
-错误响应体建议统一包含：**code**（字符串，如 invalid_credentials）、**message**（可展示文案，可选）。可重试条件：网络超时、5xx、部分 4xx（如 429）由实现约定是否重试；重试建议采用指数退避，最大重试次数由实现约定。
+错误响应体建议统一包含：**code**（字符串，如 invalid_credentials）、**message**（可展示文案，可选）。可重试条件：网络超时、5xx、部分 4xx（如 429）由实现约定是否重试；重试建议采用指数退避，最大重试次数由实现约定。**管理端登录**：POST /api/v1/admin/auth 在验证码校验失败时返回 400，**code** 为 **captcha_invalid**（验证码错误或已失效），前端应刷新验证码后重试。
 
 **API 失效判定（量化约定）**：App 端与用户端 Web 须采用同一组参数，避免行为不一致。
 - **单次请求超时**：**15 秒**（自发起请求至收到响应或超时）。

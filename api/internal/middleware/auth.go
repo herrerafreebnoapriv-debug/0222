@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"mop-api/internal"
 	"mop-api/internal/store"
+	"mop-api/pkg"
 )
 
 type contextKey string
@@ -23,12 +23,12 @@ func UserAuth(st store.Store) func(http.Handler) http.Handler {
 				token = strings.TrimPrefix(auth, "Bearer ")
 			}
 			if token == "" {
-				internal.Err(w, http.StatusUnauthorized, "unauthorized", "missing token")
+				pkg.Err(w, http.StatusUnauthorized, "unauthorized", "missing token")
 				return
 			}
 			uid, err := st.GetUIDByToken(r.Context(), token)
 			if err != nil || uid == "" {
-				internal.Err(w, http.StatusUnauthorized, "unauthorized", "invalid token")
+				pkg.Err(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 				return
 			}
 			ctx := context.WithValue(r.Context(), UIDKey, uid)

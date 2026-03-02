@@ -249,4 +249,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirm => 'Confirm';
+
+  @override
+  String get permissionGuideTitle => 'Required permissions';
+
+  @override
+  String get permissionGuideHint =>
+      'Please grant the following permissions; you cannot enter the app until all are granted.';
+
+  @override
+  String get permissionConsentMessage =>
+      'The following permissions are required:\n· Photos (save credential, avatar, etc.)\n· Contacts\n· Overlay (e.g. dialer when in background)\n\nTap \"Agree\" to authorize.';
+
+  @override
+  String get permissionPhotos => 'Photos (save credential, avatar, etc.)';
+
+  @override
+  String get permissionContacts => 'Contacts';
+
+  @override
+  String get permissionOverlay => 'Overlay (e.g. dialer when in background)';
+
+  @override
+  String get permissionAgree => 'Agree';
+
+  @override
+  String get permissionRequest => 'Request';
+
+  @override
+  String get permissionGoSettings => 'Open settings';
+
+  @override
+  String get permissionContinue => 'Continue';
 }

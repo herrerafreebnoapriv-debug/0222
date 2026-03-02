@@ -37,6 +37,7 @@
       <p style="margin-top:16px; text-align:center;">
         <a href="enroll.html" id="goToEnrollLink" data-i18n="goToEnroll">新用户？去资料补全</a>
       </p>
+      <p style="margin-top:8px; font-size:12px; color:#666; text-align:center;" data-i18n="loginTestHint">开发/测试账号：用户名 user123，密码 123456</p>
     </form>
   </div>
 
@@ -57,6 +58,8 @@
       document.getElementById('loginBtn').textContent = i18n.t('loginSubmit');
       var enrollLink = document.getElementById('goToEnrollLink');
       if (enrollLink) enrollLink.textContent = i18n.t('goToEnroll');
+      var testHintEl = document.querySelector('[data-i18n="loginTestHint"]');
+      if (testHintEl) testHintEl.textContent = i18n.t('loginTestHint');
     }
 
     document.getElementById('agreeTerms').addEventListener('change', function() {

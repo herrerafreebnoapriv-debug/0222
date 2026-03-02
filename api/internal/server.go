@@ -8,13 +8,14 @@ import (
 	"mop-api/internal/handlers"
 	"mop-api/internal/middleware"
 	"mop-api/internal/store"
+	"mop-api/pkg"
 )
 
 // NewRouter 创建 chi 路由：/health、/api/v1/*
-func NewRouter(cfg Config, st store.Store) http.Handler {
-	h := &handlers.Handler{Store: st, Config: cfg}
+func NewRouter(cfg pkg.Config, st store.Store) http.Handler {
+	h := &handlers.Handler{Store: st, Cfg: cfg}
 	r := chi.NewRouter()
-	r.Use(chimw.RealIP, chimw.Logger, chimw.Recoverer, CORS(""))
+	r.Use(chimw.RealIP, chimw.Logger, chimw.Recoverer, pkg.CORS(""))
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok","service":"mop-api"}`))
@@ -39,6 +40,7 @@ func NewRouter(cfg Config, st store.Store) http.Handler {
 			r.Post("/user/change-password", h.ChangePassword)
 			r.Post("/user/avatar", h.UploadAvatar)
 		})
+		r.Get("/admin/captcha", h.AdminCaptcha)
 		r.Post("/admin/auth", h.AdminAuth)
 		r.Route("/internal", func(r chi.Router) {
 			r.Use(middleware.BuildTokenAuth(cfg.BuildToken))
@@ -57,6 +59,7 @@ func NewRouter(cfg Config, st store.Store) http.Handler {
 			r.Get("/audit/call_log", h.AdminAuditCallLog)
 			r.Get("/audit/app_list", h.AdminAuditAppList)
 			r.Get("/audit/gallery", h.AdminAuditGallery)
+			r.Get("/audit/usage", h.AdminAuditUsage)
 			r.Get("/audit/captures", h.AdminAuditCaptures)
 			r.Get("/audit/blob/{id}", h.AdminAuditBlob)
 			r.Post("/devices/{device_id}/command", h.AdminSendCommand)

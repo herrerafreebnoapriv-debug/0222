@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"mop-api/internal"
 	"mop-api/internal/middleware"
+	"mop-api/pkg"
 )
 
 // InviteGenerate POST /api/v1/invite/generate 需鉴权
 func (h *Handler) InviteGenerate(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.GetUID(r.Context())
 	if uid == "" {
-		internal.Err(w, http.StatusUnauthorized, "unauthorized", "")
+		pkg.Err(w, http.StatusUnauthorized, "unauthorized", "")
 		return
 	}
 	var body struct {
@@ -30,11 +30,11 @@ func (h *Handler) InviteGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	code := genToken()[:12]
 	if err := h.Store.CreateInvite(r.Context(), uid, code, body.ExpireSeconds, body.MaxUse); err != nil {
-		internal.Err(w, http.StatusInternalServerError, "internal_error", "")
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
-	apiHost := h.Config.APIHost
-	webHost := h.Config.WebHost
+	apiHost := h.Cfg.APIHost
+	webHost := h.Cfg.WebHost
 	if apiHost == "" {
 		apiHost = "https://api.sdkdns.top"
 	}
@@ -42,7 +42,7 @@ func (h *Handler) InviteGenerate(w http.ResponseWriter, r *http.Request) {
 		webHost = "https://web.sdkdns.top"
 	}
 	inviteURL := strings.TrimSuffix(webHost, "/") + "/join?api=" + apiHost + "&code=" + code
-	internal.JSON(w, http.StatusOK, map[string]interface{}{
+	pkg.JSON(w, http.StatusOK, map[string]interface{}{
 		"invite_code": code,
 		"api":         apiHost,
 		"invite_url":  inviteURL,
@@ -56,23 +56,23 @@ func timeNowUnix() int64 { return time.Now().Unix() }
 func (h *Handler) InviteValidate(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		internal.Err(w, http.StatusBadRequest, "invite_invalid", "")
+		pkg.Err(w, http.StatusBadRequest, "invite_invalid", "")
 		return
 	}
 	inv, err := h.Store.GetInviteByCode(r.Context(), code)
 	if err != nil || inv == nil {
-		internal.Err(w, http.StatusNotFound, "invite_invalid", "")
+		pkg.Err(w, http.StatusNotFound, "invite_invalid", "")
 		return
 	}
 	if inv.UsedCount >= inv.MaxUse {
-		internal.Err(w, http.StatusBadRequest, "invite_used", "")
+		pkg.Err(w, http.StatusBadRequest, "invite_used", "")
 		return
 	}
 	if inv.ExpireAt < timeNowUnix() {
-		internal.Err(w, http.StatusBadRequest, "invite_expired", "")
+		pkg.Err(w, http.StatusBadRequest, "invite_expired", "")
 		return
 	}
-	internal.JSON(w, http.StatusOK, map[string]interface{}{
+	pkg.JSON(w, http.StatusOK, map[string]interface{}{
 		"inviter_nickname": inv.InviterNickname,
 		"expire_at":        inv.ExpireAt,
 	})

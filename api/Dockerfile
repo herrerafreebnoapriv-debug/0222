@@ -2,10 +2,9 @@
 FROM golang:1.21-alpine AS builder
 WORKDIR /app
 COPY go.mod ./
-RUN go mod tidy 2>/dev/null || true
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o mop-api .
+RUN go mod tidy && CGO_ENABLED=0 go build -o mop-api .
 
 FROM alpine:3.18
 RUN apk add --no-cache ca-certificates

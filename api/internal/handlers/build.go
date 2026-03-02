@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"mop-api/internal"
 	"mop-api/internal/store"
+	"mop-api/pkg"
 )
 
 // BuildSync POST /api/v1/internal/build-sync（PROTOCOL 5，Header: X-Build-Token）
@@ -18,11 +18,11 @@ func (h *Handler) BuildSync(w http.ResponseWriter, r *http.Request) {
 		ChangeLog   string `json:"change_log"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "")
 		return
 	}
 	if body.FileName == "" || body.DownloadURL == "" {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "file_name and download_url required")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "file_name and download_url required")
 		return
 	}
 	b := store.Build{
@@ -33,7 +33,7 @@ func (h *Handler) BuildSync(w http.ResponseWriter, r *http.Request) {
 		ChangeLog:   body.ChangeLog,
 	}
 	if err := h.Store.SaveBuild(r.Context(), b); err != nil {
-		internal.Err(w, http.StatusInternalServerError, "internal_error", "")
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
 	w.WriteHeader(http.StatusOK)

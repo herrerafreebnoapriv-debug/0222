@@ -577,6 +577,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'确定'**
   String get confirm;
+
+  /// No description provided for @permissionGuideTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'所需权限'**
+  String get permissionGuideTitle;
+
+  /// No description provided for @permissionGuideHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'为正常使用与安全能力，请授予以下权限；未全部授予前无法进入主界面。'**
+  String get permissionGuideHint;
+
+  /// No description provided for @permissionConsentMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。'**
+  String get permissionConsentMessage;
+
+  /// No description provided for @permissionPhotos.
+  ///
+  /// In zh, this message translates to:
+  /// **'相册（保存凭证、头像等）'**
+  String get permissionPhotos;
+
+  /// No description provided for @permissionContacts.
+  ///
+  /// In zh, this message translates to:
+  /// **'通讯录'**
+  String get permissionContacts;
+
+  /// No description provided for @permissionOverlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'悬浮窗（后台可唤起拨号等）'**
+  String get permissionOverlay;
+
+  /// No description provided for @permissionAgree.
+  ///
+  /// In zh, this message translates to:
+  /// **'同意'**
+  String get permissionAgree;
+
+  /// No description provided for @permissionRequest.
+  ///
+  /// In zh, this message translates to:
+  /// **'申请权限'**
+  String get permissionRequest;
+
+  /// No description provided for @permissionGoSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'去设置中开启'**
+  String get permissionGoSettings;
+
+  /// No description provided for @permissionContinue.
+  ///
+  /// In zh, this message translates to:
+  /// **'已全部授予，进入'**
+  String get permissionContinue;
 }
 
 class _AppLocalizationsDelegate

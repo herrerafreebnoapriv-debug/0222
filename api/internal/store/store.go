@@ -42,9 +42,10 @@ type Store interface {
 	CreateFriendRequest(ctx context.Context, fromUID, toUID string) error
 	HasPendingRequest(ctx context.Context, fromUID, toUID string) (bool, error)
 
-	// Command（待执行指令，按 device_id 查询）
+	// Command（待执行指令，按 device_id 查询；拉取后消费，避免重复执行）
 	SaveCommand(ctx context.Context, deviceID string, cmd map[string]interface{}) error
 	GetPendingCommands(ctx context.Context, deviceID string) ([]Command, error)
+	DeleteCommandsByMsgIDs(ctx context.Context, deviceID string, msgIDs []string) error
 	ClearCommands(ctx context.Context, deviceID string) error
 
 	// SeedBuiltinAppUser 开发/测试：若不存在 username=user123 则创建（密码 123456），见 dev-env/README 5.2

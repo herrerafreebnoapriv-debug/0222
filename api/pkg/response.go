@@ -1,4 +1,4 @@
-package internal
+package pkg
 
 import (
 	"encoding/json"
@@ -18,6 +18,7 @@ type ErrBody struct {
 	Message string `json:"message,omitempty"`
 }
 
+// Err 写入统一错误响应
 func Err(w http.ResponseWriter, status int, code, message string) {
 	JSON(w, status, ErrBody{Code: code, Message: message})
 }

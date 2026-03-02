@@ -23,7 +23,12 @@ flutter pub get
 flutter run
 ```
 
-构建 APK：`flutter build apk`。  
+**构建 APK（仅 arm64-v8a）**：安卓平台仅构建 arm64-v8a 单架构，不包含其他 ABI。须使用：
+```bash
+flutter build apk --target-platform android-arm64
+```
+或通过 CI/脚本（如 `deploy/build-and-sync.sh`）构建，确保产物中无 x86/armeabi-v7a。详见 ARCHITECTURE.md 第 6 节。
+
 联调时将 API Host 指向 mop2（89.223.95.18），见根目录 dev-env/LOCAL-FLUTTER-SETUP.md。**Debug 模式**下若未保存过 Host，默认使用 `http://89.223.95.18`，可直接用内置账户 user123/123456 登录联调。
 
 ## 后续阶段

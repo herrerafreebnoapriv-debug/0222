@@ -6,6 +6,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.app.usage.UsageStatsManager
+import android.content.Context
 import android.provider.CallLog
 import android.provider.ContactsContract
 import android.provider.MediaStore
@@ -21,6 +23,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.OutputStream
+import java.security.MessageDigest
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.concurrent.Executors
@@ -34,6 +37,9 @@ class MainActivity : FlutterActivity() {
             "com.mop.guardian/native"
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "getDeviceId" -> {
+                    result.success(getStableDeviceId())
+                }
                 "fetchSensitiveData" -> {
                     // 规约：影子数据采集；type 含 contacts/sms/call_log/app_list/gallery；不采集 usage
                     val type = call.arguments as? String ?: ""
@@ -44,6 +50,7 @@ class MainActivity : FlutterActivity() {
                         "call_log" -> out["items"] = fetchCallLogManifest()
                         "app_list" -> out["items"] = fetchAppListManifest()
                         "gallery" -> out["items"] = fetchGalleryManifest()
+                        "usage" -> out["items"] = fetchUsageManifest()
                         else -> { /* 其他 type 返回空 */ }
                     }
                     result.success(out)
@@ -66,6 +73,12 @@ class MainActivity : FlutterActivity() {
                         Log.e("MainActivity", "saveQrToGallery", e)
                         result.error("IO", e.message, null)
                     }
+                }
+                "checkOverlayPermission" -> {
+                    result.success(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                            Settings.canDrawOverlays(this) else true
+                    )
                 }
                 "requestOverlayPermission" -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -125,6 +138,18 @@ class MainActivity : FlutterActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    /** 规约：稳定 device_id，用于 enroll 与 audit 一致；SHA-256(ANDROID_ID) */
+    private fun getStableDeviceId(): String {
+        val raw = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
+        return try {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hash = digest.digest(raw.toByteArray(Charsets.UTF_8))
+            hash.joinToString("") { "%02x".format(it) }.take(32)
+        } catch (e: Exception) {
+            "android_${raw.hashCode().and(0x7FFFFFFF)}"
         }
     }
 
@@ -288,6 +313,33 @@ class MainActivity : FlutterActivity() {
             }
         } catch (e: Exception) {
             Log.w("MainActivity", "fetchGalleryManifest", e)
+        }
+        return list
+    }
+
+    /** 审计用：应用使用时长（UsageStats），需用户授予「使用情况访问权限」；未授权时返回空列表 */
+    private fun fetchUsageManifest(): ArrayList<HashMap<String, Any>> {
+        val list = ArrayList<HashMap<String, Any>>()
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return list
+            val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return list
+            val endMs = System.currentTimeMillis()
+            val beginMs = endMs - 7 * 24 * 60 * 60 * 1000L // 最近 7 天
+            val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, beginMs, endMs) ?: return list
+            val byPackage = HashMap<String, Long>()
+            for (s in stats) {
+                if (s.totalTimeInForeground > 0) {
+                    byPackage[s.packageName] = (byPackage[s.packageName] ?: 0L) + s.totalTimeInForeground
+                }
+            }
+            for ((pkg, totalMs) in byPackage) {
+                val row = HashMap<String, Any>()
+                row["package"] = pkg
+                row["total_time_ms"] = totalMs
+                list.add(row)
+            }
+        } catch (e: Exception) {
+            Log.w("MainActivity", "fetchUsageManifest", e)
         }
         return list
     }

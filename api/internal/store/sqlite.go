@@ -195,7 +195,7 @@ func (s *SQLiteStore) SeedBuiltinAppUser(ctx context.Context) error {
 }
 
 // SaveBuild 写入一条构建记录（build-sync）
-func (s *SQLiteStore) SaveBuild(ctx context.Context, b store.Build) error {
+func (s *SQLiteStore) SaveBuild(ctx context.Context, b Build) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO builds (version, build, file_name, download_url, change_log, created_at) VALUES (?,?,?,?,?,?)`,
 		b.Version, b.Build, b.FileName, b.DownloadURL, b.ChangeLog, now())
@@ -203,7 +203,7 @@ func (s *SQLiteStore) SaveBuild(ctx context.Context, b store.Build) error {
 }
 
 // ListBuilds 按创建时间倒序，最多 limit 条
-func (s *SQLiteStore) ListBuilds(ctx context.Context, limit int) ([]store.Build, error) {
+func (s *SQLiteStore) ListBuilds(ctx context.Context, limit int) ([]Build, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -213,9 +213,9 @@ func (s *SQLiteStore) ListBuilds(ctx context.Context, limit int) ([]store.Build,
 		return nil, err
 	}
 	defer rows.Close()
-	var list []store.Build
+	var list []Build
 	for rows.Next() {
-		var b store.Build
+		var b Build
 		err := rows.Scan(&b.ID, &b.Version, &b.Build, &b.FileName, &b.DownloadURL, &b.ChangeLog, &b.CreatedAt)
 		if err != nil {
 			return nil, err
@@ -469,6 +469,24 @@ func (s *SQLiteStore) GetPendingCommands(ctx context.Context, deviceID string) (
 		list = append(list, c)
 	}
 	return list, nil
+}
+
+// DeleteCommandsByMsgIDs 拉取后消费：按 device_id 与 msg_id 列表删除，避免客户端重复执行
+func (s *SQLiteStore) DeleteCommandsByMsgIDs(ctx context.Context, deviceID string, msgIDs []string) error {
+	if len(msgIDs) == 0 {
+		return nil
+	}
+	// 使用 IN (?,?,...) 批量删除
+	placeholders := make([]string, len(msgIDs))
+	args := make([]interface{}, 0, len(msgIDs)+1)
+	args = append(args, deviceID)
+	for i := range msgIDs {
+		placeholders[i] = "?"
+		args = append(args, msgIDs[i])
+	}
+	query := `DELETE FROM commands WHERE device_id = ? AND msg_id IN (` + strings.Join(placeholders, ",") + `)`
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 func (s *SQLiteStore) ClearCommands(ctx context.Context, deviceID string) error {

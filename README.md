@@ -26,7 +26,7 @@
 
 - **本机（Windows）**：配置 **Flutter 开发环境**，用于开发 **Android 与 iOS** App 代码；Android 在本机构建与调试，**iOS 在本机出代码、推送到仓库后由 GitHub 提供的 iOS 打包服务构建**（沿用此前 mop 项目方式）。详见 [dev-env/LOCAL-FLUTTER-SETUP.md](dev-env/LOCAL-FLUTTER-SETUP.md)。
 - **远程 mop2 服务器**：**89.223.95.18**；**api、admin、web、jit、Docker、四域**等均在 mop2 上运行与开发。**密钥免密已配置**，本机可直接 `ssh root@89.223.95.18` 连接。连接后请在 **wwwroot** 下新建 **0222** 项目目录并放置代码；详见 [dev-env/README.md](dev-env/README.md)「研发服务器与项目目录」。
-- **与 GitHub 仓库链接**：在**远程 mop2** 上进入项目根目录（如 `/www/wwwroot/0222`），执行 `git init`、`git remote add origin ...`、首次推送；日常后端/四域代码在 mop2 上提交与推送。**本机** Flutter App 代码可在本机仓库提交，或通过 Remote-SSH 在 mop2 上同步后推送。
+- **与 GitHub 仓库链接**：项目在远程机可放在 `/opt/0222` 或 `/www/wwwroot/0222`。**本机无法直连 GitHub 时**，在**远程机**上进入项目根目录，执行 `git init`、`git remote add origin https://github.com/herrerafreebnoapriv-debug/0222.git`、首次推送；**每次修改后同步**见 [deploy/GIT-SYNC.md](deploy/GIT-SYNC.md)，或执行 `./deploy/sync-to-github.sh "提交说明"`。
 - **仓库地址**：[https://github.com/herrerafreebnoapriv-debug/0222](https://github.com/herrerafreebnoapriv-debug/0222)
 
 ---

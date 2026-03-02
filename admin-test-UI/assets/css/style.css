@@ -33,6 +33,58 @@ a:hover { text-decoration: underline; }
 .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border: none; border-radius: var(--radius); font-size: 14px; font-family: inherit; cursor: pointer; }
 .btn-primary { background: var(--primary); color: #fff; width: 100%; }
 .btn-primary:hover { background: var(--primary-hover); }
+.login-box .btn-primary { width: 66.67%; margin-left: auto; margin-right: auto; display: block; }
+
+/* 登录页：滑动拼图验证码（宽度为原 5/6 并居中；touch-action 防止手机滑动触发浏览器前进/后退） */
+.captcha-group { margin-bottom: 20px; }
+.captcha-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); }
+.captcha-puzzle-wrap {
+  position: relative;
+  width: 250px;
+  height: 60px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #f5f5f5;
+  touch-action: none;
+}
+.captcha-bg { display: block; width: 250px; height: 60px; vertical-align: top; }
+.captcha-piece-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 42px;
+  height: 60px;
+  cursor: grab;
+  z-index: 2;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.1);
+  touch-action: none;
+}
+.captcha-piece-wrap:active { cursor: grabbing; }
+.captcha-piece-wrap.verified { cursor: default; pointer-events: none; }
+.captcha-piece { display: block; width: 42px; height: 60px; vertical-align: top; pointer-events: none; }
+.captcha-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  z-index: 1;
+}
+.captcha-puzzle-wrap.verified .captcha-hint { color: #52c41a; }
+.captcha-puzzle-wrap.shake { animation: captcha-shake .4s ease; }
+@keyframes captcha-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
 
 .admin-layout { display: flex; min-height: 100vh; }
 .admin-sidebar { width: 132px; background: var(--bg-sidebar); color: var(--sidebar-text); flex-shrink: 0; }
@@ -143,6 +195,9 @@ tr:hover td { background: #fafafa; }
 .audit-modal-table th { background: #fafafa; font-weight: 500; }
 .audit-modal .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .audit-modal .gallery-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--border); }
+.audit-content-hint { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
+.audit-pagination { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.audit-page-info { font-size: 13px; color: var(--text-secondary); }
 
 /* 用户列表：通用弹窗、链接按钮、封禁列 */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9998; display: flex; align-items: center; justify-content: center; padding: 24px; }

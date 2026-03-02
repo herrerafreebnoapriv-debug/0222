@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
+import 'package:mop_app/utils/permission_helper.dart';
 
 /// 扫码激活页：API 失效时通过扫描 mop 凭证或粘贴链接恢复（规约 PROTOCOL 1、7）
 /// 解析 mop://base64(host|uid|token|timestamp)，写入 Host 与凭证并重置失败计数
@@ -64,6 +65,11 @@ class _ActivateScreenState extends State<ActivateScreen> {
       await _api.saveLoginResult(parsed.token, parsed.uid, parsed.host);
       await _api.resetFailCountAfterActivation();
       if (!mounted) return;
+      final ok = await ensurePermissionsForMain(context);
+      if (!mounted || !ok) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
       Navigator.of(context).pushNamedAndRemoveUntil('/main', (_) => false);
     } catch (e) {
       if (mounted) {

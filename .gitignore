@@ -1,28 +1,24 @@
-# 证书与私钥不提交
+# 证书与私钥勿提交
 *.pem
 deploy/certs/*.pem
+# Let's Encrypt ACME 校验临时文件不提交
+deploy/certbot-webroot/
 
-# Flutter / Dart
-app/.dart_tool/
-app/.flutter-plugins
-app/.flutter-plugins-dependencies
-app/build/
-app/pubspec.lock
-*.iml
-.idea/
-
-# Go
-api/*.exe
-api/mop.db
-*.test
+# 环境与本地配置
+.env
+.env.local
+*.local
 
 # 系统与编辑器
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
-*~
+.idea/
+.vscode/
 
-# 本地环境（可选）
-.env
-.env.local
+# 构建与依赖（若在根目录引入）
+node_modules/
+*.log
+# APK 等构建产物不提交（超过 GitHub 单文件限制）
+dist/

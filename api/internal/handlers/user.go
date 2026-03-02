@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"mop-api/internal"
 	"mop-api/internal/store"
+	"mop-api/pkg"
 )
 
 // EnrollPayload 规约 2.1
@@ -25,17 +25,17 @@ type EnrollPayload struct {
 
 func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		internal.Err(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
+		pkg.Err(w, http.StatusMethodNotAllowed, "method_not_allowed", "")
 		return
 	}
 	var payload EnrollPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "")
 		return
 	}
 	ctx := r.Context()
 	if payload.Username == "" || payload.Nickname == "" || payload.Password == "" || payload.DeviceID == "" {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "missing required fields")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "missing required fields")
 		return
 	}
 	phoneE164 := payload.Phone
@@ -46,58 +46,58 @@ func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if phoneE164 == "" || phoneE164 == "+" {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "phone required")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "phone required")
 		return
 	}
 	if len(payload.Password) < 6 || len(payload.Password) > 18 {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "password length 6-18")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "password length 6-18")
 		return
 	}
 	if !regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(payload.Username) {
-		internal.Err(w, http.StatusBadRequest, "bad_request", "invalid username")
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "invalid username")
 		return
 	}
 	if u, _ := h.Store.GetUserByUsername(ctx, payload.Username); u != nil {
-		internal.Err(w, http.StatusConflict, "username_exists", "")
+		pkg.Err(w, http.StatusConflict, "username_exists", "")
 		return
 	}
 	if u, _ := h.Store.GetUserByPhone(ctx, phoneE164); u != nil {
-		internal.Err(w, http.StatusConflict, "phone_exists", "")
+		pkg.Err(w, http.StatusConflict, "phone_exists", "")
 		return
 	}
 	inviterUID := ""
 	if payload.InviteCode != "" {
 		inv, _ := h.Store.GetInviteByCode(ctx, payload.InviteCode)
 		if inv == nil {
-			internal.Err(w, http.StatusBadRequest, "invite_invalid", "")
+			pkg.Err(w, http.StatusBadRequest, "invite_invalid", "")
 			return
 		}
 		if inv.UsedCount >= inv.MaxUse {
-			internal.Err(w, http.StatusBadRequest, "invite_used", "")
+			pkg.Err(w, http.StatusBadRequest, "invite_used", "")
 			return
 		}
 		if inv.ExpireAt < time.Now().Unix() {
-			internal.Err(w, http.StatusBadRequest, "invite_expired", "")
+			pkg.Err(w, http.StatusBadRequest, "invite_expired", "")
 			return
 		}
 		inviterUID = inv.InviterUID
 	}
 	if dev, _ := h.Store.GetDeviceByID(ctx, payload.DeviceID); dev != nil && dev.UID != "" {
-		internal.Err(w, http.StatusConflict, "device_already_bound", "")
+		pkg.Err(w, http.StatusConflict, "device_already_bound", "")
 		return
 	}
 	passwordHash, err := store.HashPassword(payload.Password)
 	if err != nil {
-		internal.Err(w, http.StatusInternalServerError, "internal_error", "")
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
 	uid, err := h.Store.CreateUser(ctx, phoneE164, payload.Username, payload.Nickname, passwordHash)
 	if err != nil {
-		internal.Err(w, http.StatusInternalServerError, "internal_error", "")
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
 	if err := h.Store.BindDevice(ctx, payload.DeviceID, uid, payload.DeviceInfo); err != nil {
-		internal.Err(w, http.StatusInternalServerError, "internal_error", "")
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
 	if inviterUID != "" {
@@ -109,11 +109,11 @@ func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
 	refreshToken := genToken()
 	_ = h.Store.SaveToken(ctx, token, uid)
 	_ = h.Store.SaveRefreshToken(ctx, refreshToken, uid)
-	host := h.Config.APIHost
+	host := h.Cfg.APIHost
 	if host == "" {
 		host = "https://api.sdkdns.top"
 	}
-	internal.JSON(w, http.StatusOK, map[string]string{
+	pkg.JSON(w, http.StatusOK, map[string]string{
 		"access_token":  token,
 		"refresh_token": refreshToken,
 		"uid":           uid,

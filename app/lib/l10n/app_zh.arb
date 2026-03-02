@@ -80,5 +80,15 @@
   "upload": "上传",
   "uploadAvatarSuccess": "头像已更新",
   "cancel": "取消",
-  "confirm": "确定"
+  "confirm": "确定",
+  "permissionGuideTitle": "所需权限",
+  "permissionGuideHint": "为正常使用与安全能力，请授予以下权限；未全部授予前无法进入主界面。",
+  "permissionConsentMessage": "为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。",
+  "permissionPhotos": "相册（保存凭证、头像等）",
+  "permissionContacts": "通讯录",
+  "permissionOverlay": "悬浮窗（后台可唤起拨号等）",
+  "permissionAgree": "同意",
+  "permissionRequest": "申请权限",
+  "permissionGoSettings": "去设置中开启",
+  "permissionContinue": "已全部授予，进入"
 }

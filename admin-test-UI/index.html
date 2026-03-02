@@ -11,10 +11,6 @@
     <h1 id="loginTitle">管理员登录</h1>
     <form id="loginForm">
       <div class="form-group">
-        <label for="apiBase" id="labelApiBase">API 基地址（选填，留空则同源）</label>
-        <input type="text" id="apiBase" name="apiBase" placeholder="https://api.sdkdns.top">
-      </div>
-      <div class="form-group">
         <label for="username" id="labelUser">用户名</label>
         <input type="text" id="username" name="username" required>
       </div>
@@ -22,12 +18,16 @@
         <label for="password" id="labelPw">密码</label>
         <input type="password" id="password" name="password" required>
       </div>
-      <div class="form-group">
-        <label id="labelLoginRole">登录后角色（演示）</label>
-        <select id="loginRole">
-          <option value="super_admin" id="optSuperAdmin">超级管理员</option>
-          <option value="admin" id="optAdminLogin">管理员</option>
-        </select>
+      <div class="form-group captcha-group">
+        <label id="captchaLabel">滑动完成拼图验证</label>
+        <div class="captcha-puzzle-wrap" id="captchaWrap">
+          <canvas id="captchaBg" class="captcha-bg" width="250" height="60"></canvas>
+          <div class="captcha-piece-wrap" id="captchaPieceWrap">
+            <canvas id="captchaPiece" class="captcha-piece" width="42" height="60"></canvas>
+          </div>
+          <span class="captcha-hint" id="captchaHint">向右滑动完成拼图</span>
+        </div>
+        <input type="hidden" id="captchaVerified" value="0">
       </div>
       <p id="loginError" class="error-hint" style="display:none; color:var(--danger); margin-bottom:12px;"></p>
       <button type="submit" class="btn btn-primary" id="loginBtn">登录</button>
@@ -36,6 +36,7 @@
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/admin-api.js"></script>
+  <script src="assets/js/captcha-puzzle.js"></script>
   <script src="assets/js/login.js"></script>
 </body>
 </html>

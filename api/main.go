@@ -7,10 +7,11 @@ import (
 
 	"mop-api/internal"
 	"mop-api/internal/store"
+	"mop-api/pkg"
 )
 
 func main() {
-	cfg := internal.LoadConfig()
+	cfg := pkg.LoadConfig()
 	st, err := store.NewSQLiteStore(cfg.DBPath)
 	if err != nil {
 		log.Fatal(err)
