@@ -105,7 +105,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 160,
+                      width: 96,
                       child: DropdownButtonFormField<String>(
                         value: kCountryCodes.any((c) => c.code == _selectedCountryCode)
                             ? _selectedCountryCode

