@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOP - 用户端</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page">
+  <header class="header">
+    <h1 id="mainTitle">会话</h1>
+    <a href="settings.html" class="btn btn-ghost" id="settingsBtn">设置</a>
+  </header>
+
+  <nav class="tabs">
+    <a href="#" class="active" id="tabChats" data-tab="chats">会话</a>
+    <a href="#" id="tabContacts" data-tab="contacts">联系人</a>
+  </nav>
+
+  <div class="container">
+    <div class="toolbar">
+      <input type="text" class="search-input" id="contentSearch" placeholder="" aria-label="内容搜索">
+      <button type="button" class="btn btn-primary" id="btnFindFriend">查找添加好友</button>
+    </div>
+
+    <div id="findPanel" style="display:none; margin-bottom:16px; background:var(--bg-card); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow);">
+      <p class="find-hint" id="findHint"></p>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <input type="text" class="search-input" id="findInput" placeholder="" style="flex:1;">
+        <button type="button" class="btn btn-primary" id="findSearchBtn">搜索</button>
+      </div>
+      <div id="findResult" class="list"></div>
+    </div>
+
+    <div id="listChats" class="list">
+      <div class="list-item-wrap"><a href="chat.html?name=%E5%BC%A0%E4%B8%89" class="list-item" data-name="张三"><div class="avatar"><span class="avatar-initial"></span></div><div class="meta"><div class="title">张三</div><div class="sub">最近一条消息摘要…</div></div><span class="time">10:30</span></a><button type="button" class="btn-remark" data-name="张三" title="设置备注">⋮</button></div>
+      <div class="list-item-wrap"><a href="chat.html?name=%E6%9D%8E%E5%9B%9B" class="list-item" data-name="李四"><div class="avatar"><span class="avatar-initial"></span></div><div class="meta"><div class="title">李四</div><div class="sub">好的，收到</div></div><span class="time">昨天</span></a><button type="button" class="btn-remark" data-name="李四" title="设置备注">⋮</button></div>
+      <div class="list-item-wrap"><a href="chat.html?name=%E9%A1%B9%E7%9B%AE%E7%BB%84" class="list-item" data-name="项目组"><div class="avatar"><span class="avatar-initial"></span></div><div class="meta"><div class="title">项目组</div><div class="sub">[群] 王五：会议改到下午</div></div><span class="time">周一</span></a><button type="button" class="btn-remark" data-name="项目组" title="设置备注">⋮</button></div>
+    </div>
+
+    <div id="listContacts" class="list" style="display:none;">
+      <div class="list-item-wrap"><a href="chat.html?name=%E5%BC%A0%E4%B8%89" class="list-item" data-name="张三"><div class="avatar"><span class="avatar-initial"></span></div><div class="meta"><div class="title">张三</div><div class="sub contact-bio">产品经理 · 喜欢跑步</div></div></a><button type="button" class="btn-remark" data-name="张三" title="设置备注">⋮</button></div>
+      <div class="list-item-wrap"><a href="chat.html?name=%E6%9D%8E%E5%9B%9B" class="list-item" data-name="李四"><div class="avatar"><span class="avatar-initial"></span></div><div class="meta"><div class="title">李四</div><div class="sub contact-bio">UI 设计师</div></div></a><button type="button" class="btn-remark" data-name="李四" title="设置备注">⋮</button></div>
+      <div class="list-item-wrap"><a href="chat.html?name=%E7%8E%8B%E4%BA%94" class="list-item" data-name="王五"><div class="avatar"><span class="avatar-initial"></span></div><div class="meta"><div class="title">王五</div><div class="sub contact-bio">后端开发</div></div></a><button type="button" class="btn-remark" data-name="王五" title="设置备注">⋮</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="remarkModal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title" id="remarkModalTitle">设置备注</div>
+      <input type="text" id="remarkInput" class="modal-input" placeholder="" maxlength="20">
+      <div class="modal-hint" id="remarkHint">最多20个字符</div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="remarkCancelBtn">取消</button>
+        <button type="button" class="btn btn-primary" id="remarkSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var i18n = window.MOP_I18N;
+    var app = window.MOP_APP;
+
+    if (!app.isLoggedIn()) { app.redirectToLogin(); } else {
+      document.getElementById('mainTitle').textContent = i18n.t('mainChats');
+      document.getElementById('settingsBtn').textContent = i18n.t('settings');
+      document.getElementById('tabChats').textContent = i18n.t('mainChats');
+      document.getElementById('tabContacts').textContent = i18n.t('mainContacts');
+      document.getElementById('contentSearch').placeholder = i18n.t('searchPlaceholder');
+      document.getElementById('btnFindFriend').textContent = i18n.t('findAddFriend');
+      document.getElementById('findHint').textContent = i18n.t('findHint');
+      document.getElementById('findInput').placeholder = i18n.t('findPlaceholder');
+      document.getElementById('findSearchBtn').textContent = i18n.t('searchBtn');
+
+      document.getElementById('tabChats').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('tabChats').classList.add('active');
+        document.getElementById('tabContacts').classList.remove('active');
+        document.getElementById('listChats').style.display = 'block';
+        document.getElementById('listContacts').style.display = 'none';
+        document.getElementById('mainTitle').textContent = i18n.t('mainChats');
+      });
+      document.getElementById('tabContacts').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('tabContacts').classList.add('active');
+        document.getElementById('tabChats').classList.remove('active');
+        document.getElementById('listContacts').style.display = 'block';
+        document.getElementById('listChats').style.display = 'none';
+        document.getElementById('mainTitle').textContent = i18n.t('mainContacts');
+      });
+
+      document.getElementById('btnFindFriend').addEventListener('click', function() {
+        var p = document.getElementById('findPanel');
+        p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      });
+      document.getElementById('findSearchBtn').addEventListener('click', function() {
+        var el = document.getElementById('findResult');
+        el.innerHTML = '';
+        var div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = '<div class="avatar"><span class="avatar-initial">示</span></div><div class="meta"><div class="title">示例用户</div><div class="sub">仅展示昵称（精确搜索预览）</div></div>';
+        el.appendChild(div);
+      });
+
+      document.getElementById('contentSearch').addEventListener('input', function() {
+        var q = (this.value || '').trim().toLowerCase();
+        [document.getElementById('listChats'), document.getElementById('listContacts')].forEach(function(container) {
+          var wraps = container.querySelectorAll('.list-item-wrap');
+          wraps.forEach(function(wrap) {
+            var link = wrap.querySelector('.list-item');
+            var t = (link && (link.querySelector('.title') && link.querySelector('.title').textContent) + (link.querySelector('.sub') && link.querySelector('.sub').textContent)) || '';
+            wrap.style.display = !q || t.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+          });
+        });
+      });
+
+      var remarks = app.getRemarks();
+      function firstChar(displayName) {
+        var s = (displayName || '').trim();
+        return s ? (s.length > 0 ? [...s][0] : s.charAt(0)) : '?';
+      }
+      document.querySelectorAll('.list-item-wrap .list-item').forEach(function(link) {
+        var name = link.getAttribute('data-name');
+        if (name) {
+          var displayName = app.getRemarkDisplay(remarks[name] || name) || name;
+          var t = link.querySelector('.title');
+          if (t) t.textContent = displayName;
+          var initialEl = link.querySelector('.avatar-initial');
+          if (initialEl) initialEl.textContent = firstChar(displayName);
+        }
+      });
+      var profiles = app.getContactProfiles();
+      document.querySelectorAll('#listContacts .list-item[data-name]').forEach(function(link) {
+        var name = link.getAttribute('data-name');
+        var sub = link.querySelector('.contact-bio');
+        if (name && sub && profiles[name] != null) sub.textContent = profiles[name];
+      });
+
+      var remarkModal = document.getElementById('remarkModal');
+      var remarkInput = document.getElementById('remarkInput');
+      var currentRemarkName = null;
+      document.querySelectorAll('.btn-remark').forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation();
+          currentRemarkName = this.getAttribute('data-name');
+          document.getElementById('remarkModalTitle').textContent = i18n.t('setRemark');
+          document.getElementById('remarkInput').placeholder = i18n.t('remarkPlaceholder');
+          document.getElementById('remarkHint').textContent = i18n.t('remarkMaxHint');
+          document.getElementById('remarkCancelBtn').textContent = i18n.t('cancel');
+          document.getElementById('remarkSaveBtn').textContent = i18n.t('save');
+          remarkInput.value = app.getRemarkDisplay(app.getRemarks()[currentRemarkName] || '');
+          remarkModal.style.display = 'flex';
+        });
+      });
+      document.getElementById('remarkCancelBtn').addEventListener('click', function() { remarkModal.style.display = 'none'; });
+      document.getElementById('remarkSaveBtn').addEventListener('click', function() {
+        if (!currentRemarkName) return;
+        app.setRemark(currentRemarkName, remarkInput.value);
+        remarks = app.getRemarks();
+        var displayName = app.getRemarkDisplay(remarks[currentRemarkName] || currentRemarkName) || currentRemarkName;
+        document.querySelectorAll('.list-item[data-name="' + currentRemarkName + '"]').forEach(function(link) {
+          var t = link.querySelector('.title');
+          if (t) t.textContent = displayName;
+          var initialEl = link.querySelector('.avatar-initial');
+          if (initialEl) initialEl.textContent = firstChar(displayName);
+        });
+        remarkModal.style.display = 'none';
+      });
+      remarkModal.addEventListener('click', function(e) { if (e.target === remarkModal) remarkModal.style.display = 'none'; });
+    }
+  </script>
+</body>
+</html>

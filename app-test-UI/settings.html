@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设置 - MOP 用户端</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page">
+  <header class="header">
+    <a href="main.html" class="btn btn-ghost" id="backBtn">返回</a>
+    <h1 id="settingsTitle">设置</h1>
+    <span style="width:60px;"></span>
+  </header>
+
+  <div class="container">
+    <div class="settings-section">
+      <div class="settings-item">
+        <span id="myCredentialLabel">我的凭证</span>
+      </div>
+      <div class="qr-placeholder" id="qrPlaceholder">二维码预览</div>
+      <div style="text-align:center; padding:0 16px 16px;">
+        <button type="button" class="btn btn-primary" id="copyInviteBtn">复制邀请链接</button>
+      </div>
+    </div>
+
+    <input type="file" accept="image/*" id="avatarFileInput" style="display:none;">
+    <div class="settings-section">
+      <a href="#" class="settings-item" id="changeAvatarItem" style="display:flex;align-items:center;gap:12px;">
+        <img id="avatarImg" src="" alt="" class="settings-avatar" style="width:48px;height:48px;border-radius:50%;object-fit:cover;display:none;">
+        <span id="changeAvatarLabel">修改头像</span>
+        <span class="settings-arrow" style="margin-left:auto;">›</span>
+      </a>
+      <a href="#" class="settings-item" id="personalBioItem">
+        <span id="personalBioLabel">个人简介</span>
+        <span class="settings-arrow" id="bioSummary">›</span>
+      </a>
+      <a href="#" class="settings-item" id="changePasswordItem">
+        <span id="changePasswordLabel">修改密码</span>
+        <span class="settings-arrow">›</span>
+      </a>
+    </div>
+
+    <div class="settings-section">
+      <a href="#" class="settings-item" id="userTermsItem">
+        <span id="userTermsLabel">用户须知与免责声明</span>
+      </a>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-item">
+        <span id="langLabel">语言</span>
+        <div class="lang-options">
+          <button type="button" id="langZh" class="active">中文</button>
+          <button type="button" id="langEn">English</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-item">
+        <button type="button" class="btn btn-danger" id="logoutBtn" style="width:100%;">退出登录</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="bioModal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title" id="bioModalTitle">个人简介</div>
+      <textarea id="bioInput" class="modal-textarea" rows="4" placeholder=""></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="bioCancelBtn">取消</button>
+        <button type="button" class="btn btn-primary" id="bioSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="passwordModal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title" id="passwordModalTitle">修改密码</div>
+      <p class="modal-hint" id="passwordLengthHint"></p>
+      <input type="password" id="oldPasswordInput" class="modal-input" placeholder="" style="margin-top:8px;">
+      <input type="password" id="newPasswordInput" class="modal-input" placeholder="" style="margin-top:8px;">
+      <input type="password" id="confirmPasswordInput" class="modal-input" placeholder="" style="margin-top:8px;">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="passwordCancelBtn">取消</button>
+        <button type="button" class="btn btn-primary" id="passwordSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/web-api.js"></script>
+  <script>
+    var i18n = window.MOP_I18N;
+    var app = window.MOP_APP;
+
+    if (!app.isLoggedIn()) {
+      app.redirectToLogin();
+    } else {
+      applyI18n();
+      document.getElementById('backBtn').textContent = i18n.t('back');
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        if (window.MOP_WEB_API) window.MOP_WEB_API.clearAuth();
+        app.logout();
+      });
+
+      document.getElementById('langZh').addEventListener('click', function() {
+        i18n.setLang('zh');
+        document.getElementById('langZh').classList.add('active');
+        document.getElementById('langEn').classList.remove('active');
+        applyI18n();
+      });
+      document.getElementById('langEn').addEventListener('click', function() {
+        i18n.setLang('en');
+        document.getElementById('langEn').classList.add('active');
+        document.getElementById('langZh').classList.remove('active');
+        applyI18n();
+      });
+
+      var lang = i18n.getLang();
+      document.getElementById('langZh').classList.toggle('active', lang === 'zh');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
+
+      document.getElementById('copyInviteBtn').addEventListener('click', function() {
+        if (window.MOP_WEB_API && window.MOP_WEB_API.getToken()) {
+          window.MOP_WEB_API.inviteGenerate().then(function(r) {
+            var link = r.ok && r.invite_url ? r.invite_url : 'https://web.example.com/join?api=api.example.com&code=preview';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(link).then(function() { alert(i18n.t('copyInvite') + ' OK'); });
+            } else {
+              alert(i18n.t('copyInvite') + ': ' + link);
+            }
+          }).catch(function() {
+            alert(i18n.t('copyInvite') + ': https://web.example.com/join?api=api.example.com&code=preview');
+          });
+        } else {
+          var link = 'https://web.example.com/join?api=api.example.com&code=preview';
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() { alert(i18n.t('copyInvite') + ' OK'); });
+          } else {
+            alert(i18n.t('copyInvite') + ': ' + link);
+          }
+        }
+      });
+
+      document.getElementById('userTermsItem').addEventListener('click', function(e) {
+        e.preventDefault();
+        alert(i18n.t('termsTitle') + '\n\n' + i18n.t('termsContent'));
+      });
+
+      var avatarFileInput = document.getElementById('avatarFileInput');
+      document.getElementById('changeAvatarItem').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.MOP_WEB_API && window.MOP_WEB_API.getToken()) {
+          avatarFileInput.click();
+        } else {
+          alert(i18n.t('changeAvatar') + ' ' + i18n.t('previewNotImpl'));
+        }
+      });
+      avatarFileInput.addEventListener('change', function() {
+        var file = this.files && this.files[0];
+        this.value = '';
+        if (!file || !file.type.startsWith('image/')) {
+          if (file) alert(i18n.t('selectImage'));
+          return;
+        }
+        window.MOP_WEB_API.uploadAvatar(file).then(function(r) {
+          if (r.ok) {
+            alert(i18n.t('uploadAvatarSuccess'));
+            refreshAvatarDisplay();
+          } else {
+            alert(i18n.t('uploadAvatarFailed') + (r.message ? ': ' + r.message : ''));
+          }
+        });
+      });
+
+      function refreshAvatarDisplay() {
+        var api = window.MOP_WEB_API;
+        var img = document.getElementById('avatarImg');
+        if (!api || !api.getToken() || !img) return;
+        api.getProfile().then(function(r) {
+          if (r.ok && r.profile && r.profile.avatar_url) {
+            var base = api.getApiBase();
+            img.src = base ? (base + '/' + r.profile.avatar_url) : ('/' + r.profile.avatar_url);
+            img.style.display = '';
+          } else {
+            img.style.display = 'none';
+          }
+        }).catch(function() { img.style.display = 'none'; });
+      }
+      refreshAvatarDisplay();
+      var passwordModal = document.getElementById('passwordModal');
+      var oldPasswordInput = document.getElementById('oldPasswordInput');
+      var newPasswordInput = document.getElementById('newPasswordInput');
+      var confirmPasswordInput = document.getElementById('confirmPasswordInput');
+      document.getElementById('changePasswordItem').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (!window.MOP_WEB_API || !window.MOP_WEB_API.getToken()) {
+          alert(i18n.t('changePassword') + ' ' + i18n.t('previewNotImpl'));
+          return;
+        }
+        document.getElementById('passwordModalTitle').textContent = i18n.t('changePassword');
+        document.getElementById('passwordLengthHint').textContent = i18n.t('passwordLengthHint');
+        oldPasswordInput.placeholder = i18n.t('oldPassword');
+        newPasswordInput.placeholder = i18n.t('newPassword');
+        confirmPasswordInput.placeholder = i18n.t('confirmPassword');
+        document.getElementById('passwordCancelBtn').textContent = i18n.t('cancel');
+        document.getElementById('passwordSaveBtn').textContent = i18n.t('save');
+        oldPasswordInput.value = '';
+        newPasswordInput.value = '';
+        confirmPasswordInput.value = '';
+        passwordModal.style.display = 'flex';
+      });
+      document.getElementById('passwordCancelBtn').addEventListener('click', function() {
+        passwordModal.style.display = 'none';
+      });
+      document.getElementById('passwordSaveBtn').addEventListener('click', function() {
+        var oldP = oldPasswordInput.value;
+        var newP = newPasswordInput.value;
+        var confirmP = confirmPasswordInput.value;
+        if (newP !== confirmP) {
+          alert(i18n.t('passwordMismatch'));
+          return;
+        }
+        if (newP.length < 6 || newP.length > 18) {
+          alert(i18n.t('passwordLengthHint'));
+          return;
+        }
+        window.MOP_WEB_API.changePassword(oldP, newP).then(function(r) {
+          if (r.ok) {
+            alert(i18n.t('changePasswordSuccess'));
+            passwordModal.style.display = 'none';
+          } else {
+            alert((i18n.t('changePasswordFailed')) + (r.message ? ': ' + r.message : ''));
+          }
+        });
+      });
+      passwordModal.addEventListener('click', function(e) {
+        if (e.target === passwordModal) passwordModal.style.display = 'none';
+      });
+
+      var bioModal = document.getElementById('bioModal');
+      var bioInput = document.getElementById('bioInput');
+      var bioSummary = document.getElementById('bioSummary');
+      var BIO_KEY = 'mop_preview_bio';
+      function updateBioSummary() {
+        var bio = localStorage.getItem(BIO_KEY) || '';
+        bioSummary.textContent = bio ? '已填写 ›' : '›';
+      }
+      if (window.MOP_WEB_API && window.MOP_WEB_API.getToken()) {
+        window.MOP_WEB_API.getProfile().then(function(r) {
+          if (r.ok && r.profile && r.profile.bio != null && r.profile.bio !== '') {
+            localStorage.setItem(BIO_KEY, r.profile.bio);
+            updateBioSummary();
+          }
+        }).catch(function() {});
+      }
+      document.getElementById('personalBioItem').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('bioModalTitle').textContent = i18n.t('personalBio');
+        document.getElementById('bioInput').placeholder = i18n.t('bioPlaceholder');
+        document.getElementById('bioCancelBtn').textContent = i18n.t('cancel');
+        document.getElementById('bioSaveBtn').textContent = i18n.t('save');
+        bioInput.value = localStorage.getItem(BIO_KEY) || '';
+        bioModal.style.display = 'flex';
+      });
+      document.getElementById('bioCancelBtn').addEventListener('click', function() {
+        bioModal.style.display = 'none';
+      });
+      document.getElementById('bioSaveBtn').addEventListener('click', function() {
+        var val = bioInput.value.trim();
+        localStorage.setItem(BIO_KEY, val);
+        updateBioSummary();
+        bioModal.style.display = 'none';
+        if (window.MOP_WEB_API && window.MOP_WEB_API.getToken()) {
+          window.MOP_WEB_API.updateProfile({ bio: val }).catch(function() {});
+        }
+      });
+      bioModal.addEventListener('click', function(e) {
+        if (e.target === bioModal) bioModal.style.display = 'none';
+      });
+      updateBioSummary();
+    }
+
+    function applyI18n() {
+      document.getElementById('settingsTitle').textContent = i18n.t('settings');
+      document.getElementById('myCredentialLabel').textContent = i18n.t('myCredential');
+      document.getElementById('qrPlaceholder').textContent = i18n.t('qrPlaceholder');
+      document.getElementById('copyInviteBtn').textContent = i18n.t('copyInvite');
+      document.getElementById('userTermsLabel').textContent = i18n.t('userTerms');
+      document.getElementById('langLabel').textContent = i18n.t('language');
+      document.getElementById('logoutBtn').textContent = i18n.t('logout');
+      document.getElementById('changeAvatarLabel').textContent = i18n.t('changeAvatar');
+      document.getElementById('personalBioLabel').textContent = i18n.t('personalBio');
+      document.getElementById('changePasswordLabel').textContent = i18n.t('changePassword');
+    }
+  </script>
+</body>
+</html>

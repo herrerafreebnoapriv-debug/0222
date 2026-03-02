@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>相册/媒体 - MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="logo" id="logo">MOP 管理后台</div>
+    <nav>
+      <a href="main.html" id="navHome">首页</a>
+      <a href="devices.html" id="navDevices">设备列表</a>
+      <a href="users.html" id="navUsers">用户列表</a>
+      <a href="relations.html" id="navRelations">关系列表</a>
+      <a href="apk.html" id="navApk">应用下载</a>
+      <a href="change-password.html" id="navChangePassword">修改密码</a>
+      <a href="add-user.html" id="navAddUser">添加用户</a>
+      <a href="#" id="navLogout" style="margin-top:12px; border-top:1px solid rgba(255,255,255,.1); padding-top:12px;">退出登录</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 id="pageTitle">相册/媒体</h1>
+      <div class="admin-header-actions">
+        <span class="lang-options"><button type="button" id="langZh" class="active">中文</button><button type="button" id="langEn">English</button></span>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="card">
+        <div class="card-title">相册/媒体（按设备） <span style="font-size:12px; color:var(--text-secondary);" id="mockHint">（预览 Mock）</span></div>
+        <p style="padding:12px 24px; color:var(--text-secondary); font-size:14px;" id="galleryNote">规约中相册主要用于凭证存图；若扩展为媒体审计项，可在此按设备查看媒体元数据/列表。测试期可将 C:\Users\robot\Pictures\AurionQ 下图片复制到 assets/images/gallery/ 以预览真实图片。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th id="colDevice">设备</th><th id="colMediaType">类型</th><th id="colCount">数量</th><th id="colTime">上报时间</th></tr></thead>
+            <tbody>
+              <tr><td>dev_a1b2c3</td><td>图片</td><td>128</td><td>2025-02-22 09:00</td></tr>
+              <tr><td>dev_a1b2c3</td><td>视频</td><td>12</td><td>2025-02-22 09:00</td></tr>
+              <tr><td>dev_d4e5f6</td><td>图片</td><td>56</td><td>2025-02-21 14:20</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="gallery-preview" style="padding:16px 24px 24px;">
+          <p class="gallery-preview-title" id="galleryPreviewTitle">相册图片预览（点击查看大图）</p>
+          <div class="gallery-grid" id="galleryGrid">
+            <img src="assets/images/gallery/photo1.jpg" alt="相册1" data-full="" />
+            <img src="assets/images/gallery/photo2.jpg" alt="相册2" data-full="" />
+            <img src="assets/images/gallery/photo3.jpg" alt="相册3" data-full="" />
+            <img src="assets/images/gallery/photo4.jpg" alt="相册4" data-full="" />
+            <img src="assets/images/gallery/photo5.jpg" alt="相册5" data-full="" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="gallery-lightbox" id="galleryLightbox" style="display:none;">
+    <span class="gallery-lightbox-close" id="galleryLightboxClose">&times;</span>
+    <img class="gallery-lightbox-img" id="galleryLightboxImg" src="" alt="" />
+  </div>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    if (!app.isLoggedIn()) app.redirectLogin();
+    else {
+      document.getElementById('logo').textContent = i18n.t('appName');
+      document.getElementById('navHome').textContent = i18n.t('navHome');
+      document.getElementById('navDevices').textContent = i18n.t('navDevices');
+      document.getElementById('navUsers').textContent = i18n.t('navUsers');
+      document.getElementById('navRelations').textContent = i18n.t('navRelations');
+      document.getElementById('navApk').textContent = i18n.t('navApk');
+      document.getElementById('navChangePassword').textContent = i18n.t('navChangePassword');
+      document.getElementById('navAddUser').textContent = i18n.t('navAddUser');
+      document.getElementById('navLogout').textContent = i18n.t('logout');
+      document.getElementById('pageTitle').textContent = i18n.t('navGallery');
+      document.getElementById('colDevice').textContent = i18n.t('auditDevice');
+      document.getElementById('colMediaType').textContent = i18n.t('mediaType');
+      document.getElementById('colCount').textContent = i18n.t('count');
+      document.getElementById('colTime').textContent = i18n.t('auditTime');
+      document.getElementById('mockHint').textContent = i18n.t('previewMock');
+      document.getElementById('galleryNote').textContent = i18n.t('galleryNote');
+      document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
+      app.applyRoleNav();
+      document.getElementById('langZh').onclick = function(){ i18n.setLang('zh'); location.reload(); };
+      document.getElementById('langEn').onclick = function(){ i18n.setLang('en'); location.reload(); };
+      document.getElementById('langZh').classList.toggle('active', i18n.getLang()==='zh');
+      document.getElementById('langEn').classList.toggle('active', i18n.getLang()==='en');
+      (function(){
+        var placeholders = ['https://picsum.photos/300/300?random=1','https://picsum.photos/300/300?random=2','https://picsum.photos/300/300?random=3','https://picsum.photos/300/300?random=4','https://picsum.photos/300/300?random=5'];
+        var grid = document.getElementById('galleryGrid');
+        var imgs = grid ? grid.querySelectorAll('img') : [];
+        imgs.forEach(function(el, i){
+          el.setAttribute('data-full', el.src);
+          el.onerror = function(){ this.src = placeholders[i] || placeholders[0]; this.setAttribute('data-full', this.src); };
+          el.onclick = function(){
+            var lb = document.getElementById('galleryLightbox');
+            var lbImg = document.getElementById('galleryLightboxImg');
+            if(lb && lbImg){ lbImg.src = this.getAttribute('data-full') || this.src; lb.style.display = 'flex'; }
+          };
+        });
+        var closeBtn = document.getElementById('galleryLightboxClose');
+        var lb = document.getElementById('galleryLightbox');
+        if(closeBtn && lb){ closeBtn.onclick = function(){ lb.style.display = 'none'; }; }
+        if(lb){ lb.onclick = function(e){ if(e.target === lb) lb.style.display = 'none'; }; }
+      })();
+    }
+  </script>
+</body>
+</html>

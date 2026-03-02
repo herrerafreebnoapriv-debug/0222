@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聊天 - MOP</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page chat-page">
+  <header class="chat-header">
+    <a href="main.html" class="back-link" id="backBtn">← 返回</a>
+    <h1 class="chat-title" id="chatTitle">会话</h1>
+    <button type="button" class="btn btn-ghost btn-icon" id="chatRemarkBtn" title="设置备注">备注</button>
+  </header>
+
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg received"><div>你好，在吗？</div><div class="time">09:00</div></div>
+    <div class="chat-msg sent"><div>在的，什么事？</div><div class="time">09:01</div></div>
+    <div class="chat-msg received"><div>下午开会别忘了。</div><div class="time">09:02</div></div>
+    <div class="chat-msg sent"><div>好的，收到。</div><div class="time">09:03</div></div>
+  </div>
+
+  <div class="chat-input-bar">
+    <div style="position:relative;">
+      <button type="button" class="btn btn-ghost btn-attach" id="btnAttach" title="">📎</button>
+      <div class="chat-attach-menu" id="attachMenu">
+        <button type="button" id="attachImage">图片</button>
+        <button type="button" id="attachFile">文件</button>
+        <div class="chat-attach-divider"></div>
+        <button type="button" id="attachVoiceCall">语音通话</button>
+        <button type="button" id="attachVideoCall">视频通话</button>
+        <button type="button" id="attachScreenShare">屏幕共享</button>
+      </div>
+    </div>
+    <input type="text" id="messageInput" placeholder="" autocomplete="off">
+    <button type="button" class="btn btn-primary btn-send" id="sendBtn">发送</button>
+  </div>
+
+  <div class="modal-overlay" id="remarkModal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title" id="remarkModalTitle">设置备注</div>
+      <input type="text" id="remarkInput" class="modal-input" placeholder="" maxlength="20">
+      <div class="modal-hint" id="remarkHint">最多20个字符</div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="remarkCancelBtn">取消</button>
+        <button type="button" class="btn btn-primary" id="remarkSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var i18n = window.MOP_I18N;
+    var app = window.MOP_APP;
+
+    if (!app.isLoggedIn()) {
+      app.redirectToLogin();
+    } else {
+      var params = new URLSearchParams(window.location.search);
+      var name = decodeURIComponent(params.get('name') || '会话');
+      var remarks = app.getRemarks();
+      document.getElementById('chatTitle').textContent = app.getRemarkDisplay(remarks[name] || name);
+      document.getElementById('backBtn').textContent = '← ' + i18n.t('back');
+      document.getElementById('chatRemarkBtn').textContent = i18n.t('friendRemark');
+      document.getElementById('messageInput').placeholder = i18n.t('messagePlaceholder');
+      document.getElementById('sendBtn').textContent = i18n.t('send');
+      document.getElementById('attachImage').textContent = i18n.t('sendImage');
+      document.getElementById('attachFile').textContent = i18n.t('sendFile');
+      document.getElementById('attachVoiceCall').textContent = i18n.t('voiceCall');
+      document.getElementById('attachVideoCall').textContent = i18n.t('videoCall');
+      document.getElementById('attachScreenShare').textContent = i18n.t('screenShare');
+
+      var attachMenu = document.getElementById('attachMenu');
+      document.getElementById('btnAttach').addEventListener('click', function(e) {
+        e.stopPropagation();
+        attachMenu.classList.toggle('show');
+      });
+      document.getElementById('attachImage').addEventListener('click', function() {
+        attachMenu.classList.remove('show');
+        appendMockMessage('image');
+      });
+      document.getElementById('attachFile').addEventListener('click', function() {
+        attachMenu.classList.remove('show');
+        appendMockMessage('file');
+      });
+      document.getElementById('attachVoiceCall').addEventListener('click', function() {
+        attachMenu.classList.remove('show');
+        alert(i18n.t('voiceCall') + ' ' + i18n.t('previewNotImplemented'));
+      });
+      document.getElementById('attachVideoCall').addEventListener('click', function() {
+        attachMenu.classList.remove('show');
+        alert(i18n.t('videoCall') + ' ' + i18n.t('previewNotImplemented'));
+      });
+      document.getElementById('attachScreenShare').addEventListener('click', function() {
+        attachMenu.classList.remove('show');
+        alert(i18n.t('screenShare') + ' ' + i18n.t('previewNotImplemented'));
+      });
+      document.addEventListener('click', function() {
+        attachMenu.classList.remove('show');
+      });
+
+      var remarkModal = document.getElementById('remarkModal');
+      var remarkInput = document.getElementById('remarkInput');
+      document.getElementById('chatRemarkBtn').addEventListener('click', function() {
+        document.getElementById('remarkModalTitle').textContent = i18n.t('setRemark');
+        document.getElementById('remarkInput').placeholder = i18n.t('remarkPlaceholder');
+        document.getElementById('remarkHint').textContent = i18n.t('remarkMaxHint');
+        document.getElementById('remarkCancelBtn').textContent = i18n.t('cancel');
+        document.getElementById('remarkSaveBtn').textContent = i18n.t('save');
+        remarkInput.value = app.getRemarkDisplay(app.getRemarks()[name] || '');
+        remarkModal.style.display = 'flex';
+      });
+      document.getElementById('remarkCancelBtn').addEventListener('click', function() { remarkModal.style.display = 'none'; });
+      document.getElementById('remarkSaveBtn').addEventListener('click', function() {
+        app.setRemark(name, remarkInput.value);
+        document.getElementById('chatTitle').textContent = (remarkInput.value || '').trim() ? app.getRemarkDisplay(remarkInput.value) : name;
+        remarkModal.style.display = 'none';
+      });
+      remarkModal.addEventListener('click', function(e) { if (e.target === remarkModal) remarkModal.style.display = 'none'; });
+
+      function appendMockMessage(type) {
+        var now = new Date();
+        var timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        var label = type === 'image' ? i18n.t('sendImage') : i18n.t('sendFile');
+        var div = document.createElement('div');
+        div.className = 'chat-msg sent';
+        div.innerHTML = '<div class="msg-' + type + '">[' + label + ']</div><div class="time">' + timeStr + '</div>';
+        document.getElementById('chatMessages').appendChild(div);
+        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+      }
+
+      document.getElementById('sendBtn').addEventListener('click', sendMessage);
+      document.getElementById('messageInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+
+      function sendMessage() {
+        var input = document.getElementById('messageInput');
+        var text = (input.value || '').trim();
+        if (!text) return;
+        var now = new Date();
+        var timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        var div = document.createElement('div');
+        div.className = 'chat-msg sent';
+        div.innerHTML = '<div>' + escapeHtml(text) + '</div><div class="time">' + timeStr + '</div>';
+        document.getElementById('chatMessages').appendChild(div);
+        input.value = '';
+        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+      }
+      function escapeHtml(s) {
+        var el = document.createElement('span');
+        el.textContent = s;
+        return el.innerHTML;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用户列表 - MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="logo" id="logo">MOP 管理后台</div>
+    <nav>
+      <a href="main.html" id="navHome">首页</a>
+      <a href="devices.html" id="navDevices">设备列表</a>
+      <a href="users.html" class="active" id="navUsers">用户列表</a>
+      <a href="relations.html" id="navRelations">关系列表</a>
+      <a href="apk.html" id="navApk">应用下载</a>
+      <a href="change-password.html" id="navChangePassword">修改密码</a>
+      <a href="add-user.html" id="navAddUser">添加用户</a>
+      <a href="#" id="navLogout" style="margin-top:12px; border-top:1px solid rgba(255,255,255,.1); padding-top:12px;">退出登录</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 id="pageTitle">用户列表</h1>
+      <div class="admin-header-actions">
+        <span class="lang-options"><button type="button" id="langZh" class="active">中文</button><button type="button" id="langEn">English</button></span>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="card">
+        <div class="card-title">用户列表 <span style="font-size:12px; color:var(--text-secondary);" id="mockHint">（预览 Mock）</span></div>
+        <div class="query-bar user-list-query">
+          <span class="user-list-query-group">
+            <input type="text" id="contentQueryInput" placeholder="" class="user-list-content-input" data-i18n-placeholder="queryPlaceholder">
+            <button type="button" class="btn btn-primary btn-sm" id="contentQueryBtn" data-i18n="contentQueryBtn">内容查询</button>
+          </span>
+          <span class="user-list-pair-row">
+            <input type="text" id="inputA" placeholder="" class="user-list-pair-input" data-i18n-placeholder="inputAPlaceholder">
+            <span class="user-list-and" id="andLabel">和</span>
+            <input type="text" id="inputB" placeholder="" class="user-list-pair-input" data-i18n-placeholder="inputBPlaceholder">
+            <button type="button" class="btn btn-sm" id="queryUserPairBtn" data-i18n="queryUserPairBtn">查询用户对</button>
+          </span>
+        </div>
+        <div class="table-wrap">
+          <table class="user-list-table">
+            <thead>
+              <tr>
+                <th id="colPhone">手机号</th>
+                <th id="colUsername">用户名</th>
+                <th id="colNickname">昵称</th>
+                <th id="colChangePw">修改密码</th>
+                <th id="colFriends">好友数量</th>
+                <th id="colSuperiors">上级人数</th>
+                <th id="colSubordinates">下级人数</th>
+                <th id="colRegTime">注册时间</th>
+                <th id="colLastOnline">最后上线</th>
+                <th id="colSendMsg">发送管理消息</th>
+                <th id="colBan">封禁</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr><td colspan="11" class="loading-cell" id="userTableLoading">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="user-list-notes" style="padding:12px 24px; font-size:12px; color:var(--text-secondary); border-top:1px solid var(--border);">
+          <p><strong id="noteBanLabel">封禁</strong>：<span id="userListNoteBan"></span></p>
+          <p><strong id="noteMgmtLabel">发送管理消息</strong>：<span id="userListNoteMgmt"></span></p>
+          <p><strong id="notePairLabel">查询用户对</strong>：<span id="userListNotePair"></span></p>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- 查询用户对弹窗 -->
+  <div id="userPairModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-header">
+        <h3 id="userPairModalTitle">查询用户对</h3>
+        <button type="button" class="modal-close" id="userPairModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><strong id="userPairRelLabel">关系</strong>：<span id="userPairRelValue">好友</span></p>
+        <p><strong id="userPairFirstChatLabel">初次聊天时间</strong>：<span id="userPairFirstChatValue">2025/09/01 08:00</span></p>
+        <p><label id="userPairSearchLabel">聊天内容搜索</label></p>
+        <div class="user-pair-search-row">
+          <input type="text" id="userPairSearchInput" placeholder="" class="user-pair-search-input">
+          <button type="button" class="btn btn-sm user-pair-search-btn" id="userPairSearchBtn" data-i18n="queryButton">查询</button>
+        </div>
+        <button type="button" class="btn btn-sm user-pair-export-btn" id="userPairExportBtn" data-i18n="exportAllChats">导出聊天记录</button>
+      </div>
+    </div>
+  </div>
+  <!-- 发送管理消息弹窗 -->
+  <div id="mgmtMsgModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:480px;">
+      <div class="modal-header">
+        <h3 id="mgmtMsgModalTitle">发送管理消息</h3>
+        <button type="button" class="modal-close" id="mgmtMsgModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-label" id="mgmtPresetLabel"></p>
+        <div class="mgmt-preset-row">
+          <label class="modal-option-inline"><input type="radio" name="mgmtContent" value="1"> <span class="preset-num">[1]</span></label>
+          <input type="text" id="mgmtPresetInput1" class="mgmt-preset-input" value="预设内容一（可编辑保存）" style="flex:1; min-width:0; padding:6px 10px; margin:0 8px; border:1px solid var(--border); border-radius:var(--radius);">
+          <button type="button" class="btn btn-sm mgmt-save-btn" data-preset="1" data-i18n="saveBtn">保存</button>
+        </div>
+        <div class="mgmt-preset-row">
+          <label class="modal-option-inline"><input type="radio" name="mgmtContent" value="2"> <span class="preset-num">[2]</span></label>
+          <input type="text" id="mgmtPresetInput2" class="mgmt-preset-input" value="预设内容二" style="flex:1; min-width:0; padding:6px 10px; margin:0 8px; border:1px solid var(--border); border-radius:var(--radius);">
+          <button type="button" class="btn btn-sm mgmt-save-btn" data-preset="2" data-i18n="saveBtn">保存</button>
+        </div>
+        <div class="mgmt-preset-row">
+          <label class="modal-option-inline"><input type="radio" name="mgmtContent" value="3"> <span class="preset-num">[3]</span></label>
+          <input type="text" id="mgmtPresetInput3" class="mgmt-preset-input" value="预设内容三" style="flex:1; min-width:0; padding:6px 10px; margin:0 8px; border:1px solid var(--border); border-radius:var(--radius);">
+          <button type="button" class="btn btn-sm mgmt-save-btn" data-preset="3" data-i18n="saveBtn">保存</button>
+        </div>
+        <p class="modal-label" id="mgmtTempLabel">临时撰写（勾选此项并填写下方内容后可发送）</p>
+        <div class="mgmt-temp-row">
+          <label class="modal-option-inline"><input type="radio" name="mgmtContent" value="temp"> <span id="mgmtTempCheckLabel"></span></label>
+          <input type="text" id="mgmtTempInput" placeholder="" style="flex:1; min-width:0; padding:6px 10px; margin-left:8px; border:1px solid var(--border); border-radius:var(--radius);" data-i18n-placeholder="tempContent">
+        </div>
+        <button type="button" class="btn btn-primary" id="mgmtMsgSendBtn" data-i18n="send" disabled>发送</button>
+      </div>
+    </div>
+  </div>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/admin-api.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    var adminApi = window.ADMIN_API;
+    if (!app.isLoggedIn()) app.redirectLogin();
+    else if (app.getRole() === 'admin') { window.location.href = 'main.html'; }
+    else {
+      function buildUserRow(u) {
+        var phone = (u.phone_masked || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var username = (u.username || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var nickname = (u.nickname || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var regTime = (u.created_at || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<tr>' +
+          '<td>' + phone + '</td>' +
+          '<td>' + username + '</td>' +
+          '<td>' + nickname + '</td>' +
+          '<td><a href="#" class="link-btn">' + i18n.t('changePasswordCol') + '</a></td>' +
+          '<td><span class="count-with-view">— <span>' + i18n.t('unitPeople') + '</span></span> <a href="#" class="link-btn">' + i18n.t('view') + '</a></td>' +
+          '<td><span class="count-with-view">— <span>' + i18n.t('unitPeople') + '</span></span> <a href="#" class="link-btn">' + i18n.t('view') + '</a></td>' +
+          '<td><span class="count-with-view">— <span>' + i18n.t('unitPeople') + '</span></span> <a href="#" class="link-btn">' + i18n.t('view') + '</a></td>' +
+          '<td>' + regTime + '</td>' +
+          '<td>—</td>' +
+          '<td><button type="button" class="btn btn-sm btn-send-msg">' + i18n.t('selectAndSend') + '</button></td>' +
+          '<td class="ban-cell"><button type="button" class="btn btn-sm btn-ban">' + i18n.t('muteUnmute') + '</button> <button type="button" class="btn btn-sm btn-danger btn-ban">' + i18n.t('permanentLogout') + '</button></td>' +
+          '</tr>';
+      }
+      function renderUsersTable(items) {
+        var tbody = document.getElementById('userTableBody');
+        if (!tbody) return;
+        if (!items || items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">' + (i18n.t('noUsers') || '无用户') + '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(buildUserRow).join('');
+      }
+      function loadUsers(params) {
+        if (!adminApi || !adminApi.getAdminToken()) {
+          renderUsersTable([]);
+          document.getElementById('mockHint').textContent = i18n.t('previewMock');
+          return;
+        }
+        var loading = document.getElementById('userTableLoading');
+        if (loading) loading.textContent = i18n.t('loading') || '加载中…';
+        adminApi.getUsers(params || {}).then(function(data) {
+          var items = (data && data.items) ? data.items : [];
+          renderUsersTable(items);
+          var hint = document.getElementById('mockHint');
+          if (hint) hint.textContent = '（已从 API 加载 ' + (data.total != null ? data.total : items.length) + ' 条）';
+        }).catch(function(r) {
+          if (r && (r.status === 401 || r.status === 403)) app.redirectLogin();
+          else {
+            renderUsersTable([]);
+            var hint = document.getElementById('mockHint');
+            if (hint) hint.textContent = i18n.t('previewMock');
+          }
+        });
+      }
+      loadUsers();
+      document.getElementById('contentQueryBtn').onclick = function() {
+        var kw = (document.getElementById('contentQueryInput').value || '').trim();
+        loadUsers(kw ? { keyword: kw } : {});
+      };
+      document.getElementById('logo').textContent = i18n.t('appName');
+      document.getElementById('navHome').textContent = i18n.t('navHome');
+      document.getElementById('navDevices').textContent = i18n.t('navDevices');
+      document.getElementById('navUsers').textContent = i18n.t('navUsers');
+      document.getElementById('navRelations').textContent = i18n.t('navRelations');
+      document.getElementById('navApk').textContent = i18n.t('navApk');
+      document.getElementById('navChangePassword').textContent = i18n.t('navChangePassword');
+      document.getElementById('navAddUser').textContent = i18n.t('navAddUser');
+      document.getElementById('navLogout').textContent = i18n.t('logout');
+      document.getElementById('pageTitle').textContent = i18n.t('navUsers');
+      document.getElementById('mockHint').textContent = i18n.t('previewMock');
+      document.getElementById('contentQueryBtn').textContent = i18n.t('contentQueryBtn');
+      document.getElementById('andLabel').textContent = i18n.t('andLabel');
+      document.getElementById('queryUserPairBtn').textContent = i18n.t('queryUserPairBtn');
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){ el.placeholder = i18n.t(el.getAttribute('data-i18n-placeholder')); });
+      document.getElementById('colPhone').textContent = i18n.t('phoneNumber');
+      document.getElementById('colUsername').textContent = i18n.t('usernameLabel');
+      document.getElementById('colNickname').textContent = i18n.t('nickname');
+      document.getElementById('colChangePw').textContent = i18n.t('changePasswordCol');
+      document.getElementById('colFriends').textContent = i18n.t('friendsCount');
+      document.getElementById('colSuperiors').textContent = i18n.t('superiorsCount');
+      document.getElementById('colSubordinates').textContent = i18n.t('subordinatesCount');
+      document.getElementById('colRegTime').textContent = i18n.t('regTime');
+      document.getElementById('colLastOnline').textContent = i18n.t('lastOnline');
+      document.getElementById('colSendMsg').textContent = i18n.t('sendMgmtMsg');
+      document.getElementById('colBan').textContent = i18n.t('ban');
+      document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = i18n.t(el.getAttribute('data-i18n')); });
+      document.getElementById('noteBanLabel').textContent = i18n.t('ban');
+      document.getElementById('noteMgmtLabel').textContent = i18n.t('sendMgmtMsg');
+      document.getElementById('notePairLabel').textContent = i18n.t('queryUserPairBtn');
+      document.getElementById('userListNoteBan').textContent = i18n.t('userListNoteBan');
+      document.getElementById('userListNoteMgmt').textContent = i18n.t('userListNoteMgmt');
+      document.getElementById('userListNotePair').textContent = i18n.t('userListNotePair');
+      document.getElementById('userPairModalTitle').textContent = i18n.t('userPairModalTitle');
+      document.getElementById('userPairRelLabel').textContent = i18n.t('relationship');
+      document.getElementById('userPairFirstChatLabel').textContent = i18n.t('firstChatTime');
+      document.getElementById('userPairSearchLabel').textContent = i18n.t('chatContentSearch');
+      document.getElementById('userPairExportBtn').textContent = i18n.t('exportAllChats');
+      document.getElementById('mgmtMsgModalTitle').textContent = i18n.t('mgmtMsgModalTitle');
+      document.getElementById('mgmtPresetLabel').textContent = i18n.t('mgmtPresetHint');
+      document.getElementById('mgmtTempLabel').textContent = i18n.t('tempContent');
+      document.getElementById('mgmtTempCheckLabel').textContent = i18n.t('tempContentLabel');
+      document.getElementById('mgmtMsgSendBtn').textContent = i18n.t('send');
+      document.getElementById('mgmtTempInput').placeholder = i18n.t('tempContent');
+      document.getElementById('userPairSearchBtn').textContent = i18n.t('queryButton');
+      document.querySelectorAll('.mgmt-save-btn').forEach(function(btn){ btn.textContent = i18n.t('saveBtn'); });
+      document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
+      app.applyRoleNav();
+      document.getElementById('langZh').onclick = function(){ i18n.setLang('zh'); location.reload(); };
+      document.getElementById('langEn').onclick = function(){ i18n.setLang('en'); location.reload(); };
+      document.getElementById('langZh').classList.toggle('active', i18n.getLang()==='zh');
+      document.getElementById('langEn').classList.toggle('active', i18n.getLang()==='en');
+      document.getElementById('queryUserPairBtn').onclick = function(){ document.getElementById('userPairModal').style.display = 'flex'; };
+      document.getElementById('userPairModalClose').onclick = function(){ document.getElementById('userPairModal').style.display = 'none'; };
+      document.getElementById('userPairModal').onclick = function(e){ if (e.target === this) this.style.display = 'none'; };
+      document.getElementById('userPairSearchBtn').onclick = function(){ alert(i18n.t('previewMock')); };
+      document.querySelectorAll('.btn-send-msg').forEach(function(btn){ btn.onclick = function(){ var m=document.getElementById('mgmtMsgModal'); loadMgmtPresets(); document.querySelectorAll('input[name=mgmtContent]').forEach(function(r){ r.checked=false; }); document.getElementById('mgmtTempInput').value=''; document.getElementById('mgmtMsgSendBtn').disabled=true; m.style.display='flex'; }; });
+      document.getElementById('mgmtMsgModalClose').onclick = function(){ document.getElementById('mgmtMsgModal').style.display = 'none'; };
+      document.getElementById('mgmtMsgModal').onclick = function(e){ if (e.target === this) this.style.display = 'none'; };
+      document.querySelectorAll('input[name=mgmtContent]').forEach(function(radio){ radio.onchange = function(){ document.getElementById('mgmtMsgSendBtn').disabled = false; }; });
+      document.getElementById('mgmtMsgSendBtn').onclick = function(){
+        var sel = document.querySelector('input[name=mgmtContent]:checked');
+        if (!sel){ alert(i18n.t('previewMock')); return; }
+        if (sel.value === 'temp' && !document.getElementById('mgmtTempInput').value.trim()){ alert(i18n.t('previewMock')); return; }
+        alert(i18n.t('previewMock'));
+      };
+      document.querySelectorAll('.mgmt-save-btn').forEach(function(btn){
+        btn.onclick = function(){ var id=btn.getAttribute('data-preset'); var inp=document.getElementById('mgmtPresetInput'+id); if(inp){ try{ localStorage.setItem('mgmt_preset_'+id, inp.value); }catch(e){} alert(i18n.t('savedTip')); } };
+      });
+      function loadMgmtPresets(){ for(var i=1;i<=3;i++){ try{ var v=localStorage.getItem('mgmt_preset_'+i); if(v){ var el=document.getElementById('mgmtPresetInput'+i); if(el) el.value=v; } }catch(e){} } }
+      document.getElementById('userPairExportBtn').onclick = function(){ alert(i18n.t('previewMock')); };
+    }
+  </script>
+</body>
+</html>

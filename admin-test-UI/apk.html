@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>APK 下载 - MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="logo" id="logo">MOP 管理后台</div>
+    <nav>
+      <a href="main.html" id="navHome">首页</a>
+      <a href="devices.html" id="navDevices">设备列表</a>
+      <a href="users.html" id="navUsers">用户列表</a>
+      <a href="relations.html" id="navRelations">关系列表</a>
+      <a href="apk.html" class="active" id="navApk">应用下载</a>
+      <a href="change-password.html" id="navChangePassword">修改密码</a>
+      <a href="add-user.html" id="navAddUser">添加用户</a>
+      <a href="#" id="navLogout" style="margin-top:12px; border-top:1px solid rgba(255,255,255,.1); padding-top:12px;">退出登录</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 id="pageTitle">APK 下载</h1>
+      <div class="admin-header-actions">
+        <span class="lang-options"><button type="button" id="langZh" class="active">中文</button><button type="button" id="langEn">English</button></span>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="card">
+        <div class="card-title">APK 列表 <span style="font-size:12px; color:var(--text-secondary);" id="mockHint">（预览 Mock）</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th id="colVersion">版本</th><th id="colBuild">Build</th><th id="colDownload">下载</th><th id="colChangelog">更新说明</th></tr></thead>
+            <tbody id="buildsTbody">
+              <tr><td>1.0.0</td><td>102</td><td><a href="#">mop_v1.0.0_102.apk</a></td><td>Initial stable release</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    var adminApi = window.ADMIN_API;
+    if (!app.isLoggedIn()) app.redirectLogin();
+    else {
+      if (adminApi && adminApi.getAdminToken()) {
+        adminApi.getBuilds({ limit: 50 }).then(function(data) {
+          var tbody = document.getElementById('buildsTbody');
+          var hint = document.getElementById('mockHint');
+          if (data && data.items && data.items.length >= 0) {
+            hint.textContent = data.items.length ? '（已从 API 加载 ' + data.items.length + ' 条）' : i18n.t('previewMock');
+            tbody.innerHTML = data.items.length ? data.items.map(function(b) {
+              return '<tr><td>' + (b.version || '') + '</td><td>' + (b.build != null ? b.build : '') + '</td><td><a href="' + (b.download_url || '#') + '" target="_blank" rel="noopener">' + (b.file_name || '') + '</a></td><td>' + (b.change_log || '') + '</td></tr>';
+            }).join('') : '<tr><td colspan="4">' + (i18n.t('noData') || '暂无数据') + '</td></tr>';
+          }
+        }).catch(function() {});
+      }
+      document.getElementById('logo').textContent = i18n.t('appName');
+      document.getElementById('navHome').textContent = i18n.t('navHome');
+      document.getElementById('navDevices').textContent = i18n.t('navDevices');
+      document.getElementById('navUsers').textContent = i18n.t('navUsers');
+      document.getElementById('navRelations').textContent = i18n.t('navRelations');
+      document.getElementById('navApk').textContent = i18n.t('navApk');
+      document.getElementById('navChangePassword').textContent = i18n.t('navChangePassword');
+      document.getElementById('navAddUser').textContent = i18n.t('navAddUser');
+      document.getElementById('navLogout').textContent = i18n.t('logout');
+      document.getElementById('pageTitle').textContent = i18n.t('navApk');
+      document.getElementById('colVersion').textContent = i18n.t('version');
+      document.getElementById('colBuild').textContent = 'Build';
+      document.getElementById('colDownload').textContent = i18n.t('download');
+      document.getElementById('colChangelog').textContent = i18n.t('changeLog');
+      document.getElementById('mockHint').textContent = i18n.t('previewMock');
+      document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
+      app.applyRoleNav();
+      document.getElementById('langZh').onclick = function(){ i18n.setLang('zh'); location.reload(); };
+      document.getElementById('langEn').onclick = function(){ i18n.setLang('en'); location.reload(); };
+      document.getElementById('langZh').classList.toggle('active', i18n.getLang()==='zh');
+      document.getElementById('langEn').classList.toggle('active', i18n.getLang()==='en');
+    }
+  </script>
+</body>
+</html>

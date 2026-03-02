@@ -1,0 +1,53 @@
+# MOP 四域开发/测试环境 - Docker Compose
+# 四域（web / admin / api / jit）共用同一网络，容器间可用服务名互访。
+# 使用前：在 dev-env 目录执行 docker compose up -d（各服务需替换为实际镜像或 build）。
+
+version: "3.9"
+
+services:
+  api:
+    image: placeholder/api   # 替换为实际 api 镜像或 build: ./path-to-api
+    container_name: mop-api
+    ports:
+      - "8443:443"
+      - "8080:80"
+    networks:
+      - mop-net
+    # 环境变量示例，按实际实现调整
+    # environment:
+    #   - TINODE_LISTEN=:8080
+    #   - API_HOST=api.sdkdns.top
+
+  admin:
+    image: placeholder/admin
+    container_name: mop-admin
+    ports:
+      - "8444:443"
+      - "8081:80"
+    networks:
+      - mop-net
+    # 调用 api 时使用 http://api:80 或 https://api:443（同网络内服务名解析）
+
+  web:
+    image: placeholder/web
+    container_name: mop-web
+    ports:
+      - "8445:443"
+      - "8082:80"
+    networks:
+      - mop-net
+    # 前端请求 api 时使用公网可访问的 api 域名（由反向代理或浏览器访问），容器内如需调 api 可用 http://api:80
+
+  jit:
+    image: placeholder/jitsi   # 或 jitsi/web、自建 Jitsi 镜像
+    container_name: mop-jit
+    ports:
+      - "8446:443"
+      - "8083:80"
+    networks:
+      - mop-net
+
+networks:
+  mop-net:
+    driver: bridge
+    name: mop-four-domain

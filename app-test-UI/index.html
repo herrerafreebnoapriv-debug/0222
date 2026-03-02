@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 - MOP 用户端</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page">
+  <div class="container" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <h1 style="text-align:center; margin-bottom:24px;" data-i18n="loginTitle">用户登录</h1>
+
+    <div class="terms-box" id="termsBox">
+      <strong data-i18n="termsTitle">用户须知和免责声明</strong>
+      <p style="margin:8px 0 0 0;" id="termsContent"></p>
+    </div>
+
+    <form id="loginForm" onsubmit="return handleLogin(event)">
+      <div class="checkbox-wrap">
+        <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+        <label for="agreeTerms" id="agreeTermsLabel">已阅读并同意《用户须知和免责声明》</label>
+      </div>
+      <div class="form-group">
+        <label for="apiBase">API 基地址（选填，留空则使用默认）</label>
+        <input type="text" id="apiBase" name="apiBase" placeholder="https://api.sdkdns.top">
+      </div>
+      <div class="form-group">
+        <label for="identity">手机号或用户名</label>
+        <input type="text" id="identity" name="identity" placeholder="" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" placeholder="" autocomplete="current-password" required>
+      </div>
+      <p id="loginError" style="display:none; color:#c00; margin-bottom:12px;"></p>
+      <button type="submit" class="btn btn-primary" id="loginBtn" style="width:100%;" disabled>登录</button>
+      <p style="margin-top:16px; text-align:center;">
+        <a href="enroll.html" id="goToEnrollLink" data-i18n="goToEnroll">新用户？去资料补全</a>
+      </p>
+    </form>
+  </div>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/web-api.js"></script>
+  <script>
+    var i18n = window.MOP_I18N;
+    var app = window.MOP_APP;
+    var webApi = window.MOP_WEB_API;
+
+    function applyI18n() {
+      document.getElementById('termsContent').textContent = i18n.t('termsContent');
+      document.getElementById('agreeTermsLabel').textContent = i18n.t('agreeTerms');
+      document.querySelector('[data-i18n="loginTitle"]').textContent = i18n.t('loginTitle');
+      document.getElementById('identity').placeholder = i18n.t('identityPlaceholder');
+      document.getElementById('password').placeholder = i18n.t('passwordPlaceholder');
+      document.getElementById('loginBtn').textContent = i18n.t('loginSubmit');
+      var enrollLink = document.getElementById('goToEnrollLink');
+      if (enrollLink) enrollLink.textContent = i18n.t('goToEnroll');
+    }
+
+    document.getElementById('agreeTerms').addEventListener('change', function() {
+      document.getElementById('loginBtn').disabled = !this.checked;
+    });
+
+    function handleLogin(e) {
+      e.preventDefault();
+      if (!document.getElementById('agreeTerms').checked) return false;
+      var apiBase = document.getElementById('apiBase').value.trim();
+      if (webApi) webApi.setApiBase(apiBase);
+      var identity = document.getElementById('identity').value.trim();
+      var password = document.getElementById('password').value;
+      var errEl = document.getElementById('loginError');
+      var btn = document.getElementById('loginBtn');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+
+      if (webApi && identity && password) {
+        webApi.login(identity, password).then(function(result) {
+          if (result.ok) {
+            app.setTermsAccepted('1.0');
+            app.setLoggedIn(true);
+            app.redirectToMain();
+            return;
+          }
+          errEl.textContent = result.message || result.code || ('HTTP ' + (result.status || ''));
+          errEl.style.display = 'block';
+          btn.disabled = document.getElementById('agreeTerms').checked;
+        });
+        return false;
+      }
+      app.setTermsAccepted('1.0');
+      app.setLoggedIn(true);
+      app.redirectToMain();
+      return false;
+    }
+
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var inviteCode = params.get('invite_code');
+      var apiFromUrl = params.get('api');
+      if (inviteCode) localStorage.setItem('mop_invite_code', inviteCode);
+      if (apiFromUrl && webApi) {
+        webApi.setApiBase(apiFromUrl);
+        document.getElementById('apiBase').value = apiFromUrl;
+      }
+    })();
+
+    if (app.isLoggedIn()) {
+      app.redirectToMain();
+    } else {
+      applyI18n();
+      if (webApi && webApi.getApiBase()) document.getElementById('apiBase').value = webApi.getApiBase();
+    }
+  </script>
+</body>
+</html>

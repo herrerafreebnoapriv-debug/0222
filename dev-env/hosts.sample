@@ -1,0 +1,15 @@
+# MOP 四域开发/测试环境 - hosts 示例
+# 用法：将下方一段追加到本机或远程开发机的 hosts 文件中。
+# - Windows: C:\Windows\System32\drivers\etc\hosts
+# - Linux/macOS: /etc/hosts
+#
+# 场景一：在远程服务器上开发，四域指向该服务器（同机多端口）
+# 将 127.0.0.1 替换为你的开发服务器 IP（内网或公网均可）
+# 例如：192.168.1.100  web.sdkdns.top  admin.sdkdns.top  api.sdkdns.top  jit.sdkdns.top
+
+127.0.0.1   web.sdkdns.top   admin.sdkdns.top   api.sdkdns.top   jit.sdkdns.top
+
+# 场景二：使用 .local 开发域名，与正式域名隔离（可选）
+# 若不想改正式域名解析，可仅使用下面四行，各服务配置中使用 api.local 等
+
+127.0.0.1   web.local   admin.local   api.local   jit.local

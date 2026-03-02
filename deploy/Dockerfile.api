@@ -1,0 +1,18 @@
+# 后端 API 占位镜像（开发期）
+# 当前为占位：仅提供简单健康检查与 503 提示，便于与 admin 同网部署。
+# 正式实现时替换为本镜像的 build 为 Tinode + 自研 REST API 的构建。
+FROM nginx:alpine
+
+RUN rm -rf /usr/share/nginx/html/*
+
+# 健康检查与占位响应（return 与 add_header 同 location 时 add_header 对 return 不生效，仅用 return 即可）
+RUN echo 'server { \
+  listen 80; \
+  location /health { default_type application/json; return 200 "{\"status\":\"ok\",\"service\":\"mop-api-placeholder\"}\n"; } \
+  location /api/ { default_type application/json; return 503 "{\"code\":\"not_implemented\",\"message\":\"API not implemented yet\"}\n"; } \
+  location / { default_type text/plain; return 503 "MOP API placeholder. Replace this image with Tinode + REST API.\n"; } \
+}' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

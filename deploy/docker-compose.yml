@@ -1,0 +1,90 @@
+# MOP 后端、用户网页端与管理后台 - 同一台远程机容器化部署
+# 使用方式（在项目根目录 0222 下执行）：
+#   docker compose -f deploy/docker-compose.yml up -d --build
+# 推荐：通过反向代理用域名访问（不加端口），见 proxy 服务与 deploy/README.md。
+
+version: "3.9"
+
+services:
+  proxy:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.proxy
+    image: mop-proxy:latest
+    container_name: mop-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - mop-net
+    depends_on:
+      - api
+      - web
+      - admin
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    image: mop-api:latest
+    container_name: mop-api
+    ports:
+      - "8080:80"
+    networks:
+      - mop-net
+    environment:
+      - PORT=80
+      - DB_PATH=/data/mop.db
+      # 以下为开发/测试用示例，生产请改为保密值
+      - ADMIN_TOKEN=dev_admin_token
+      - BUILD_TOKEN=dev_build_token
+      - API_HOST=https://api.sdkdns.top
+      - WEB_HOST=https://web.sdkdns.top
+    volumes:
+      - mop-api-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:80/health 2>/dev/null | grep -q ok || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    image: mop-web:latest
+    container_name: mop-web
+    ports:
+      - "8082:80"
+    networks:
+      - mop-net
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.admin
+    image: mop-admin:latest
+    container_name: mop-admin
+    ports:
+      - "8081:80"
+    networks:
+      - mop-net
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  mop-net:
+    driver: bridge
+    name: mop-deploy-net
+
+volumes:
+  mop-api-data:

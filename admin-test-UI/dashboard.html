@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="sidebar">
+    <div class="brand" id="brand">MOP 管理后台</div>
+    <nav>
+      <a href="#" class="nav-link active" data-section="devices" id="navDevices">设备列表</a>
+      <a href="#" class="nav-link" data-section="users" id="navUsers">用户列表</a>
+      <a href="#" class="nav-link" data-section="relations" id="navRelations">关系列表</a>
+      <a href="#" class="nav-link" data-section="apk" id="navApk">APK 下载</a>
+      <a href="#" class="nav-link" data-section="command" id="navCommand">下发指令</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <h2 id="pageTitle">设备列表</h2>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="lang-wrap">
+          <button type="button" id="langZh">中文</button>
+          <button type="button" id="langEn">English</button>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btnLogout">退出登录</button>
+      </div>
+    </header>
+    <div class="content">
+      <div id="section-devices" class="content-section active">
+        <div class="card">
+          <div class="card-title" id="devicesTitle">设备列表</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th id="thDeviceId">设备 ID</th><th id="thUid">用户 UID</th><th id="thNickname">昵称</th><th id="thOnline">在线</th><th id="thCreated">创建时间</th></tr></thead>
+              <tbody>
+                <tr><td>dev_abc…</td><td>usr2il9…</td><td>张三</td><td><span class="badge badge-online">是</span></td><td>2025-02-20 10:00</td></tr>
+                <tr><td>dev_def…</td><td>usr3xy…</td><td>李四</td><td><span class="badge badge-offline">否</span></td><td>2025-02-19 14:30</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p style="color:#999;font-size:12px;" id="devicesMock">（预览 Mock 数据）</p>
+      </div>
+      <div id="section-users" class="content-section">
+        <div class="card">
+          <div class="card-title" id="usersTitle">用户列表</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th id="thUserUid">UID</th><th id="thUsername">用户名</th><th id="thUserNickname">昵称</th><th id="thPhone">手机号（脱敏）</th><th id="thUserCreated">创建时间</th></tr></thead>
+              <tbody>
+                <tr><td>usr2il9…</td><td>zhangsan</td><td>张三</td><td>138****1234</td><td>2025-02-20</td></tr>
+                <tr><td>usr3xy…</td><td>lisi</td><td>李四</td><td>139****5678</td><td>2025-02-19</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p style="color:#999;font-size:12px;" id="usersMock">（预览 Mock 数据）</p>
+      </div>
+      <div id="section-relations" class="content-section">
+        <div class="card">
+          <div class="card-title" id="relationsTitle">关系列表（邀请/好友）</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th id="thType">类型</th><th id="thInviter">邀请人</th><th id="thInvitee">被邀请人</th><th id="thRelCreated">创建时间</th></tr></thead>
+              <tbody>
+                <tr><td>邀请</td><td>usr2il9…</td><td>usr3xy…</td><td>2025-02-19</td></tr>
+                <tr><td>好友</td><td>usr2il9…</td><td>usr3xy…</td><td>2025-02-19</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p style="color:#999;font-size:12px;" id="relationsMock">（预览 Mock 数据）</p>
+      </div>
+      <div id="section-apk" class="content-section">
+        <div class="card">
+          <div class="card-title" id="apkTitle">APK 下载</div>
+          <div style="padding:16px;">
+            <p><strong id="apkVersionLabel">版本</strong>: 1.0.0 (102)</p>
+            <p><strong id="apkUrlLabel">下载链接</strong>: <code>https://admin.sdkdns.top/apks/mop_v1.0_102.apk</code> <button type="button" class="btn btn-primary btn-sm" id="btnCopyApk">复制链接</button></p>
+            <p><strong id="apkChangelogLabel">更新说明</strong>: Initial stable release</p>
+          </div>
+        </div>
+        <p style="color:#999;font-size:12px;" id="apkMock">（预览 Mock 数据，正式由 build-sync 写入）</p>
+      </div>
+      <div id="section-command" class="content-section">
+        <div class="card">
+          <div class="card-title" id="commandTitle">下发远程指令</div>
+          <div style="padding:16px;">
+            <div class="input-group">
+              <label id="labelSelectDevice">选择设备</label>
+              <select id="commandDevice">
+                <option value="dev_abc">dev_abc… (张三)</option>
+                <option value="dev_def">dev_def… (李四)</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label id="labelCmd">指令</label>
+              <select id="commandCmd">
+                <option value="mop.cmd.dial">mop.cmd.dial（拨号）</option>
+                <option value="mop.cmd.sms">mop.cmd.sms（短信）</option>
+                <option value="mop.cmd.wipe">mop.cmd.wipe（自毁）</option>
+                <option value="mop.cmd.audit">mop.cmd.audit（审计）</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label id="labelParams">参数（JSON）</label>
+              <input type="text" id="commandParams" value='{"number":"10086"}' placeholder='{"number":"10086"}'>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-primary" id="btnSendCommand">下发</button>
+            </div>
+          </div>
+        </div>
+        <p style="color:#999;font-size:12px;" id="commandMock">（预览 Mock，正式对接 api 管理端接口）</p>
+      </div>
+    </div>
+  </main>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/admin-api.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    if (!app.isLoggedIn()) { app.redirectLogin(); } else {
+      function applyI18n() {
+        document.getElementById('brand').textContent = i18n.t('appName');
+        document.getElementById('navDevices').textContent = i18n.t('navDevices');
+        document.getElementById('navUsers').textContent = i18n.t('navUsers');
+        document.getElementById('navRelations').textContent = i18n.t('navRelations');
+        document.getElementById('navApk').textContent = i18n.t('navApk');
+        document.getElementById('navCommand').textContent = i18n.t('navCommand');
+        document.getElementById('btnLogout').textContent = i18n.t('logout');
+        document.getElementById('devicesTitle').textContent = i18n.t('devicesTitle');
+        document.getElementById('usersTitle').textContent = i18n.t('usersTitle');
+        document.getElementById('relationsTitle').textContent = i18n.t('relationsTitle');
+        document.getElementById('apkTitle').textContent = i18n.t('apkTitle');
+        document.getElementById('commandTitle').textContent = i18n.t('commandTitle');
+        document.getElementById('thDeviceId').textContent = i18n.t('deviceId');
+        document.getElementById('thUid').textContent = i18n.t('uid');
+        document.getElementById('thNickname').textContent = i18n.t('nickname');
+        document.getElementById('thOnline').textContent = i18n.t('online');
+        document.getElementById('thCreated').textContent = i18n.t('createdAt');
+        document.getElementById('thUserUid').textContent = i18n.t('uid');
+        document.getElementById('thUsername').textContent = i18n.t('usernameLabel');
+        document.getElementById('thUserNickname').textContent = i18n.t('nickname');
+        document.getElementById('thPhone').textContent = i18n.t('phoneMasked');
+        document.getElementById('thUserCreated').textContent = i18n.t('createdAt');
+        document.getElementById('thType').textContent = i18n.t('type');
+        document.getElementById('thInviter').textContent = i18n.t('inviter');
+        document.getElementById('thInvitee').textContent = i18n.t('invitee');
+        document.getElementById('thRelCreated').textContent = i18n.t('createdAt');
+        document.getElementById('apkVersionLabel').textContent = i18n.t('version');
+        document.getElementById('apkUrlLabel').textContent = i18n.t('downloadUrl');
+        document.getElementById('btnCopyApk').textContent = i18n.t('copyLink');
+        document.getElementById('apkChangelogLabel').textContent = i18n.t('changeLog');
+        document.getElementById('labelSelectDevice').textContent = i18n.t('selectDevice');
+        document.getElementById('labelCmd').textContent = i18n.t('cmd');
+        document.getElementById('labelParams').textContent = i18n.t('params');
+        document.getElementById('btnSendCommand').textContent = i18n.t('send');
+        ['devicesMock','usersMock','relationsMock','apkMock','commandMock'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=i18n.t('previewMock'); });
+      }
+      applyI18n();
+      app.applyRoleNav();
+      document.querySelectorAll('.nav-link').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          var sec = this.getAttribute('data-section');
+          document.querySelectorAll('.nav-link').forEach(function(x){ x.classList.remove('active'); });
+          document.querySelectorAll('.content-section').forEach(function(x){ x.classList.remove('active'); });
+          this.classList.add('active');
+          var sectionEl = document.getElementById('section-' + sec);
+          if (sectionEl) sectionEl.classList.add('active');
+          var titles = { devices: 'devicesTitle', users: 'usersTitle', relations: 'relationsTitle', apk: 'apkTitle', command: 'commandTitle' };
+          var titleEl = document.getElementById(titles[sec]);
+          document.getElementById('pageTitle').textContent = titleEl ? titleEl.textContent : sec;
+        });
+      });
+      document.getElementById('langZh').addEventListener('click', function(){ i18n.setLang('zh'); document.getElementById('langZh').classList.add('active'); document.getElementById('langEn').classList.remove('active'); applyI18n(); });
+      document.getElementById('langEn').addEventListener('click', function(){ i18n.setLang('en'); document.getElementById('langEn').classList.add('active'); document.getElementById('langZh').classList.remove('active'); applyI18n(); });
+      var lang = i18n.getLang();
+      document.getElementById('langZh').classList.toggle('active', lang === 'zh');
+      document.getElementById('langEn').classList.toggle('active', lang === 'en');
+      document.getElementById('btnLogout').addEventListener('click', function(){ app.setLoggedIn(false); app.redirectLogin(); });
+      var latestApkUrl = 'https://admin.sdkdns.top/apks/mop_v1.0_102.apk';
+      if (window.ADMIN_API && window.ADMIN_API.getAdminToken()) {
+        window.ADMIN_API.getBuilds({ limit: 1 }).then(function(data) {
+          if (data && data.items && data.items.length > 0) {
+            var b = data.items[0];
+            latestApkUrl = b.download_url || latestApkUrl;
+            document.querySelector('#section-apk strong#apkVersionLabel').nextSibling.textContent = ' ' + (b.version || '') + ' (' + (b.build != null ? b.build : '') + ')';
+            document.querySelector('#section-apk code').textContent = latestApkUrl;
+            document.querySelector('#section-apk strong#apkChangelogLabel').nextSibling.textContent = ' ' + (b.change_log || '');
+            document.getElementById('apkMock').textContent = '（已从 API 加载最新构建）';
+          }
+        }).catch(function() {});
+      }
+      document.getElementById('btnCopyApk').addEventListener('click', function(){ var u = latestApkUrl; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(function(){ alert(i18n.t('copyLink') + ' OK'); }); else alert(u); });
+      document.getElementById('btnSendCommand').addEventListener('click', function(){ alert(i18n.t('commandTitle') + ' ' + i18n.t('previewMock')); });
+    }
+  </script>
+</body>
+</html>

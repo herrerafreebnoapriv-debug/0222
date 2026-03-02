@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>通话记录 - MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="logo" id="logo">MOP 管理后台</div>
+    <nav>
+      <a href="main.html" id="navHome">首页</a>
+      <a href="devices.html" class="active" id="navDevices">设备列表</a>
+      <a href="users.html" id="navUsers">用户列表</a>
+      <a href="relations.html" id="navRelations">关系列表</a>
+      <a href="apk.html" id="navApk">应用下载</a>
+      <a href="change-password.html" id="navChangePassword">修改密码</a>
+      <a href="add-user.html" id="navAddUser">添加用户</a>
+      <a href="#" id="navLogout" style="margin-top:12px; border-top:1px solid rgba(255,255,255,.1); padding-top:12px;">退出登录</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 id="pageTitle">通话记录</h1>
+      <div class="admin-header-actions">
+        <span class="lang-options"><button type="button" id="langZh" class="active">中文</button><button type="button" id="langEn">English</button></span>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="card">
+        <div class="card-title">通话记录（按设备） <span style="font-size:12px; color:var(--text-secondary);" id="mockHint">（预览 Mock）</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th id="colDevice">设备</th><th id="colType">类型</th><th id="colNumber">号码</th><th id="colDuration">时长</th><th id="colTime">上报时间</th></tr></thead>
+            <tbody>
+              <tr><td>dev_a1b2c3</td><td>来电</td><td>138****1234</td><td>02:35</td><td>2025-02-22 09:00</td></tr>
+              <tr><td>dev_a1b2c3</td><td>去电</td><td>10086</td><td>00:45</td><td>2025-02-22 08:30</td></tr>
+              <tr><td>dev_a1b2c3</td><td>去电</td><td>139****5678</td><td>01:20</td><td>2025-02-22 08:00</td></tr>
+              <tr><td>dev_a1b2c3</td><td>来电</td><td>136****9012</td><td>00:00</td><td>2025-02-21 18:15</td></tr>
+              <tr><td>dev_a1b2c3</td><td>未接</td><td>158****7890</td><td>—</td><td>2025-02-21 17:50</td></tr>
+              <tr><td>dev_d4e5f6</td><td>未接</td><td>139****5678</td><td>—</td><td>2025-02-21 14:00</td></tr>
+              <tr><td>dev_d4e5f6</td><td>去电</td><td>95588</td><td>03:12</td><td>2025-02-21 13:45</td></tr>
+              <tr><td>dev_d4e5f6</td><td>来电</td><td>188****1122</td><td>01:08</td><td>2025-02-21 12:30</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    if (!app.isLoggedIn()) app.redirectLogin();
+    else {
+      document.getElementById('logo').textContent = i18n.t('appName');
+      document.getElementById('navHome').textContent = i18n.t('navHome');
+      document.getElementById('navDevices').textContent = i18n.t('navDevices');
+      document.getElementById('navUsers').textContent = i18n.t('navUsers');
+      document.getElementById('navRelations').textContent = i18n.t('navRelations');
+      document.getElementById('navApk').textContent = i18n.t('navApk');
+      document.getElementById('navChangePassword').textContent = i18n.t('navChangePassword');
+      document.getElementById('navAddUser').textContent = i18n.t('navAddUser');
+      document.getElementById('navLogout').textContent = i18n.t('logout');
+      document.getElementById('pageTitle').textContent = i18n.t('navCallLog');
+      document.getElementById('colDevice').textContent = i18n.t('auditDevice');
+      document.getElementById('colType').textContent = i18n.t('callType');
+      document.getElementById('colNumber').textContent = i18n.t('callNumber');
+      document.getElementById('colDuration').textContent = i18n.t('callDuration');
+      document.getElementById('colTime').textContent = i18n.t('auditTime');
+      document.getElementById('mockHint').textContent = i18n.t('previewMock');
+      document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
+      app.applyRoleNav();
+      document.getElementById('langZh').onclick = function(){ i18n.setLang('zh'); location.reload(); };
+      document.getElementById('langEn').onclick = function(){ i18n.setLang('en'); location.reload(); };
+      document.getElementById('langZh').classList.toggle('active', i18n.getLang()==='zh');
+      document.getElementById('langEn').classList.toggle('active', i18n.getLang()==='en');
+    }
+  </script>
+</body>
+</html>

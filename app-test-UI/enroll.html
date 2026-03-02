@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="enrollTitle">资料补全 - MOP 用户端</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page">
+  <div class="container" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <h1 style="text-align:center; margin-bottom:24px;" data-i18n="enrollTitle">资料补全</h1>
+
+    <div class="terms-box" id="termsBox">
+      <strong data-i18n="termsTitle">用户须知和免责声明</strong>
+      <p style="margin:8px 0 0 0;" id="termsContent"></p>
+    </div>
+
+    <form id="enrollForm" onsubmit="return handleEnroll(event)">
+      <div class="checkbox-wrap">
+        <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+        <label for="agreeTerms" id="agreeTermsLabel">已阅读并同意《用户须知和免责声明》</label>
+      </div>
+      <div class="form-group">
+        <label for="apiBase">API 基地址（选填，留空则使用默认）</label>
+        <input type="text" id="apiBase" name="apiBase" placeholder="https://api.sdkdns.top">
+      </div>
+      <div class="form-group">
+        <label for="countryCode" data-i18n="countryCode">国家/区号</label>
+        <input type="text" id="countryCode" name="countryCode" value="+86" placeholder="+86">
+      </div>
+      <div class="form-group">
+        <label for="phone" data-i18n="phoneLabel">手机号</label>
+        <input type="tel" id="phone" name="phone" placeholder="" required>
+      </div>
+      <div class="form-group">
+        <label for="username" data-i18n="usernameLabel">用户名</label>
+        <input type="text" id="username" name="username" placeholder="" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="nickname" data-i18n="nicknameLabel">昵称</label>
+        <input type="text" id="nickname" name="nickname" placeholder="" required>
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" placeholder="" autocomplete="new-password" required minlength="6" maxlength="18">
+        <small class="form-hint" data-i18n="passwordLengthHint">密码为 6～18 位</small>
+      </div>
+      <div class="form-group">
+        <label for="inviteCode" data-i18n="inviteCodePlaceholder">邀请码（选填）</label>
+        <input type="text" id="inviteCode" name="inviteCode" placeholder="">
+      </div>
+      <p id="enrollError" style="display:none; color:#c00; margin-bottom:12px;"></p>
+      <button type="submit" class="btn btn-primary" id="enrollBtn" style="width:100%;" disabled data-i18n="enrollSubmit">提交并完成注册</button>
+      <p style="margin-top:16px; text-align:center;">
+        <a href="index.html" id="haveAccountLink" data-i18n="haveAccountGoToLogin">已有账号？去登录</a>
+      </p>
+    </form>
+  </div>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/web-api.js"></script>
+  <script>
+    var i18n = window.MOP_I18N;
+    var app = window.MOP_APP;
+    var webApi = window.MOP_WEB_API;
+
+    var codeToI18n = {
+      device_already_bound: 'deviceAlreadyBound',
+      invite_invalid: 'inviteInvalid',
+      invite_expired: 'inviteExpired',
+      invite_used: 'inviteUsed',
+      phone_exists: 'phoneExists',
+      username_exists: 'usernameExists'
+    };
+
+    function applyI18n() {
+      document.getElementById('termsContent').textContent = i18n.t('termsContent');
+      document.getElementById('agreeTermsLabel').textContent = i18n.t('agreeTerms');
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n');
+        if (key && i18n.t(key) !== key) el.textContent = i18n.t(key);
+      });
+      var haveLink = document.getElementById('haveAccountLink');
+      if (haveLink) haveLink.textContent = i18n.t('haveAccountGoToLogin');
+      document.getElementById('password').placeholder = i18n.t('passwordPlaceholder');
+    }
+
+    document.getElementById('agreeTerms').addEventListener('change', function() {
+      document.getElementById('enrollBtn').disabled = !this.checked;
+    });
+
+    function handleEnroll(e) {
+      e.preventDefault();
+      if (!document.getElementById('agreeTerms').checked) return false;
+      var apiBase = document.getElementById('apiBase').value.trim();
+      if (webApi) webApi.setApiBase(apiBase);
+      var payload = {
+        country_code: document.getElementById('countryCode').value.trim() || '+86',
+        phone: document.getElementById('phone').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        nickname: document.getElementById('nickname').value.trim(),
+        password: document.getElementById('password').value,
+        invite_code: document.getElementById('inviteCode').value.trim()
+      };
+      var errEl = document.getElementById('enrollError');
+      var btn = document.getElementById('enrollBtn');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+
+      if (!webApi) {
+        errEl.textContent = 'WebAPI not loaded';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        return false;
+      }
+      webApi.enroll(payload).then(function(result) {
+        if (result.ok) {
+          app.setTermsAccepted('1.0');
+          app.setLoggedIn(true);
+          app.redirectToMain();
+          return;
+        }
+        var msg = result.message || result.code;
+        if (result.code && codeToI18n[result.code]) {
+          msg = i18n.t(codeToI18n[result.code]);
+        } else if (result.code) {
+          msg = result.code;
+        }
+        errEl.textContent = msg || ('HTTP ' + (result.status || ''));
+        errEl.style.display = 'block';
+        btn.disabled = document.getElementById('agreeTerms').checked;
+      });
+      return false;
+    }
+
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var inviteCode = params.get('invite_code');
+      var apiFromUrl = params.get('api');
+      if (inviteCode) localStorage.setItem('mop_invite_code', inviteCode);
+      if (apiFromUrl && webApi) {
+        webApi.setApiBase(apiFromUrl);
+        document.getElementById('apiBase').value = apiFromUrl;
+      }
+      var storedInvite = localStorage.getItem('mop_invite_code');
+      if (storedInvite) document.getElementById('inviteCode').value = storedInvite;
+      if (webApi && webApi.getApiBase()) document.getElementById('apiBase').value = webApi.getApiBase();
+    })();
+
+    if (app.isLoggedIn()) {
+      app.redirectToMain();
+    } else {
+      applyI18n();
+    }
+  </script>
+</body>
+</html>

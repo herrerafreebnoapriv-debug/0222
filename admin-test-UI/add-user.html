@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>添加用户 - MOP 管理后台</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="logo" id="logo">MOP 管理后台</div>
+    <nav>
+      <a href="main.html" id="navHome">首页</a>
+      <a href="devices.html" id="navDevices">设备列表</a>
+      <a href="users.html" id="navUsers">用户列表</a>
+      <a href="relations.html" id="navRelations">关系列表</a>
+      <a href="apk.html" id="navApk">应用下载</a>
+      <a href="change-password.html" id="navChangePassword">修改密码</a>
+      <a href="add-user.html" class="active" id="navAddUser">添加用户</a>
+      <a href="#" id="navLogout" style="margin-top:12px; border-top:1px solid rgba(255,255,255,.1); padding-top:12px;">退出登录</a>
+    </nav>
+  </aside>
+  <main class="admin-main">
+    <header class="admin-header">
+      <h1 id="pageTitle">添加用户</h1>
+      <div class="admin-header-actions">
+        <span class="lang-options"><button type="button" id="langZh" class="active">中文</button><button type="button" id="langEn">English</button></span>
+      </div>
+    </header>
+    <div class="admin-content">
+      <div class="card" style="max-width:420px;">
+        <div class="card-title" id="cardTitle">添加用户</div>
+        <div style="padding:24px;">
+          <div class="form-group">
+            <label id="lblPhone">手机号</label>
+            <input type="text" id="inputPhone" placeholder="">
+          </div>
+          <div class="form-group">
+            <label id="lblUsername">用户名</label>
+            <input type="text" id="inputUsername" placeholder="">
+          </div>
+          <div class="form-group" id="roleGroup">
+            <label id="lblRole">角色</label>
+            <select id="inputRole">
+              <option value="admin" id="optAdmin">管理员</option>
+              <option value="user" id="optUser" selected>用户</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="lblNickname">昵称</label>
+            <input type="text" id="inputNickname" placeholder="" maxlength="32" data-nickname-max-display="16">
+            <span class="form-hint" id="nicknameHint"></span>
+          </div>
+          <div class="form-group">
+            <label id="lblPassword">密码</label>
+            <input type="password" id="inputPassword" placeholder="">
+          </div>
+          <button type="button" class="btn btn-primary" id="btnSubmit">添加用户</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var i18n = window.ADMIN_I18N;
+    var app = window.ADMIN_APP;
+    if (!app.isLoggedIn()) app.redirectLogin();
+    else {
+      document.getElementById('logo').textContent = i18n.t('appName');
+      document.getElementById('navHome').textContent = i18n.t('navHome');
+      document.getElementById('navDevices').textContent = i18n.t('navDevices');
+      document.getElementById('navUsers').textContent = i18n.t('navUsers');
+      document.getElementById('navRelations').textContent = i18n.t('navRelations');
+      document.getElementById('navApk').textContent = i18n.t('navApk');
+      document.getElementById('navChangePassword').textContent = i18n.t('navChangePassword');
+      document.getElementById('navAddUser').textContent = i18n.t('navAddUser');
+      document.getElementById('navLogout').textContent = i18n.t('logout');
+      document.getElementById('pageTitle').textContent = i18n.t('navAddUser');
+      document.getElementById('cardTitle').textContent = i18n.t('navAddUser');
+      document.getElementById('lblPhone').textContent = i18n.t('phoneNumber');
+      document.getElementById('lblUsername').textContent = i18n.t('usernameLabel');
+      document.getElementById('lblNickname').textContent = i18n.t('nickname');
+      document.getElementById('lblPassword').textContent = i18n.t('password');
+      document.getElementById('btnSubmit').textContent = i18n.t('addUserSubmit');
+      document.getElementById('nicknameHint').textContent = i18n.t('nicknameLengthHint');
+      document.getElementById('lblRole').textContent = i18n.t('roleLabel');
+      document.getElementById('optAdmin').textContent = i18n.t('roleAdmin');
+      document.getElementById('optUser').textContent = i18n.t('roleUser');
+      (function(){
+        var role = app.getRole();
+        var roleGroup = document.getElementById('roleGroup');
+        if (role === 'admin') roleGroup.style.display = 'none';
+        else roleGroup.style.display = '';
+      })();
+      app.applyRoleNav();
+      (function(){
+        var MAX_DISPLAY = 16;
+        function displayLength(s){
+          var n = 0;
+          for (var i = 0; i < s.length; i++){
+            n += /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(s[i]) ? 2 : 1;
+            if (n > MAX_DISPLAY) return n;
+          }
+          return n;
+        }
+        function trimToDisplayMax(str){
+          var n = 0, i = 0;
+          for (; i < str.length; i++){
+            var add = /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(str[i]) ? 2 : 1;
+            if (n + add > MAX_DISPLAY) break;
+            n += add;
+          }
+          return str.slice(0, i);
+        }
+        var inp = document.getElementById('inputNickname');
+        inp.addEventListener('input', function(){
+          var val = this.value;
+          if (displayLength(val) > MAX_DISPLAY) this.value = trimToDisplayMax(val);
+        });
+      })();
+      document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
+      document.getElementById('langZh').onclick = function(){ i18n.setLang('zh'); location.reload(); };
+      document.getElementById('langEn').onclick = function(){ i18n.setLang('en'); location.reload(); };
+      document.getElementById('langZh').classList.toggle('active', i18n.getLang()==='zh');
+      document.getElementById('langEn').classList.toggle('active', i18n.getLang()==='en');
+      document.getElementById('btnSubmit').onclick = function(){
+        var nick = (document.getElementById('inputNickname').value || '').trim();
+        var len = 0;
+        for (var i = 0; i < nick.length; i++) len += /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(nick[i]) ? 2 : 1;
+        if (len > 16){ alert(i18n.t('nicknameLengthError')); return; }
+        var createRole = app.getRole() === 'admin' ? 'user' : (document.getElementById('inputRole').value || 'user');
+        alert(i18n.t('previewMock'));
+      };
+    }
+  </script>
+</body>
+</html>

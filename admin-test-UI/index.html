@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理员登录 - MOP</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="login-page">
+  <div class="login-box">
+    <h1 id="loginTitle">管理员登录</h1>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="apiBase" id="labelApiBase">API 基地址（选填，留空则同源）</label>
+        <input type="text" id="apiBase" name="apiBase" placeholder="https://api.sdkdns.top">
+      </div>
+      <div class="form-group">
+        <label for="username" id="labelUser">用户名</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password" id="labelPw">密码</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="form-group">
+        <label id="labelLoginRole">登录后角色（演示）</label>
+        <select id="loginRole">
+          <option value="super_admin" id="optSuperAdmin">超级管理员</option>
+          <option value="admin" id="optAdminLogin">管理员</option>
+        </select>
+      </div>
+      <p id="loginError" class="error-hint" style="display:none; color:var(--danger); margin-bottom:12px;"></p>
+      <button type="submit" class="btn btn-primary" id="loginBtn">登录</button>
+    </form>
+  </div>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/admin-api.js"></script>
+  <script src="assets/js/login.js"></script>
+</body>
+</html>

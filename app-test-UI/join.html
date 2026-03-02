@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>邀请入网 - MOP 用户端</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page">
+  <div class="container" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:24px;">
+    <h1 id="joinTitle" style="text-align:center; margin-bottom:24px;">邀请入网</h1>
+    <div id="joinState" class="card" style="max-width:400px; width:100%; padding:24px; text-align:center;">
+      <p id="joinMessage">正在校验邀请…</p>
+      <button type="button" class="btn btn-primary" id="joinGoBtn" style="display:none; margin-top:16px;">去登录</button>
+    </div>
+  </div>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/web-api.js"></script>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var api = params.get('api') || '';
+      var code = params.get('code') || '';
+      var titleEl = document.getElementById('joinTitle');
+      var stateEl = document.getElementById('joinState');
+      var msgEl = document.getElementById('joinMessage');
+      var btnEl = document.getElementById('joinGoBtn');
+      var i18n = window.MOP_I18N;
+      var webApi = window.MOP_WEB_API;
+
+      titleEl.textContent = i18n.t('inviteJoinTitle');
+
+      function showResult(message, showButton) {
+        msgEl.textContent = message;
+        btnEl.style.display = showButton ? 'inline-block' : 'none';
+        btnEl.textContent = i18n.t('goToLogin');
+      }
+
+      if (!code) {
+        showResult(i18n.t('inviteInvalid'), true);
+        btnEl.onclick = function() { window.location.href = 'index.html'; };
+        return;
+      }
+
+      var apiBase = (api || '').trim().replace(/\/+$/, '');
+      if (apiBase && webApi) webApi.setApiBase(apiBase);
+      msgEl.textContent = i18n.t('inviteValidating');
+
+      var url = apiBase ? (apiBase + '/api/v1/invite/validate?code=' + encodeURIComponent(code)) : ('/api/v1/invite/validate?code=' + encodeURIComponent(code));
+      fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        .then(function(res) {
+          if (res.status === 200) {
+            return res.json().then(function(data) {
+              var nickname = (data.inviter_nickname || '').trim() || '邀请人';
+              showResult((i18n.t('inviteViaInviter') || '').replace(/\{nickname\}/g, nickname), true);
+              btnEl.onclick = function() {
+                var q = 'invite_code=' + encodeURIComponent(code);
+                if (apiBase) q += '&api=' + encodeURIComponent(apiBase);
+                window.location.href = 'index.html?' + q;
+              };
+            });
+          }
+          return res.json().catch(function() { return {}; }).then(function(body) {
+            var codeStr = (body.code || '').toLowerCase();
+            if (codeStr === 'invite_expired') showResult(i18n.t('inviteExpired'), true);
+            else if (codeStr === 'invite_used') showResult(i18n.t('inviteUsed'), true);
+            else showResult(i18n.t('inviteInvalid'), true);
+            btnEl.onclick = function() { window.location.href = 'index.html'; };
+          });
+        })
+        .catch(function() {
+          showResult(i18n.t('inviteInvalid'), true);
+          btnEl.onclick = function() { window.location.href = 'index.html'; };
+        });
+    })();
+  </script>
+</body>
+</html>
