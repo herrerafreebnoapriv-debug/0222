@@ -107,6 +107,10 @@
         if (parts.length === 4) return parts[0] + '.' + parts[1] + '.*.*';
         return ip;
       }
+      function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
       function formatBackendTime(s) {
         if (!s) return '—';
         var d = new Date(s);
@@ -404,6 +408,14 @@
         var pad = function (x) { return (x < 10 ? '0' : '') + x; };
         return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
       }
+      /** 审计表格内时间格式：与约定示例一致 YYYY-MM-DD HH:mm */
+      function formatAuditTime(msOrStr) {
+        if (msOrStr == null) return '—';
+        var d = (typeof msOrStr === 'number' || (typeof msOrStr === 'string' && /^\d+$/.test(msOrStr))) ? new Date(parseInt(msOrStr, 10) < 1e12 ? parseInt(msOrStr, 10) * 1000 : parseInt(msOrStr, 10)) : new Date(msOrStr);
+        if (isNaN(d.getTime())) return String(msOrStr);
+        var pad = function (x) { return (x < 10 ? '0' : '') + x; };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      }
       function smsTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '收'; case 2: return '发'; case 3: return '草稿'; default: return String(t); } }
       function callTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '接听'; case 2: return '拨出'; case 3: return '未接'; default: return String(t); } }
       /** 渲染解密后的审计内容（含分页）；bodyEl._auditItems / _auditPage / _auditPageType 用于分页 */
@@ -429,9 +441,11 @@
         if (pageType === 'contacts') {
           var rows = pageItems.map(function(r) {
             var name = (r.display_name != null ? r.display_name : ((r.given_name || '') + ' ' + (r.family_name || '')).trim()) || '—';
-            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + name + '</td></tr>';
+            var number = (r.phone != null ? r.phone : (r.number != null ? r.number : (r.address != null ? r.address : '—')));
+            var timeStr = formatAuditTime(r.date != null ? r.date : r.reported_at);
+            return '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(String(number)) + '</td><td>' + timeStr + '</td></tr>';
           });
-          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>姓名</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>姓名</th><th>号码</th><th>上报时间</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'gallery') {
           var rows = pageItems.map(function(r) {
             return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + (r.date_added != null ? r.date_added : '') + '</td><td>' + (r.size != null ? r.size : (r.kind || '')) + '</td><td>' + (r.mime_type || r.kind || '') + '</td></tr>';
@@ -439,18 +453,19 @@
           html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>日期/时间戳</th><th>大小/类型</th><th>MIME/类型</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'sms') {
           var rows = pageItems.map(function(r) {
-            var timeStr = formatTimestamp(r.date);
+            var timeStr = formatAuditTime(r.date);
             var typeStr = smsTypeText(r.type);
-            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + typeStr + '</td><td>' + (r.address || '') + '</td><td>' + timeStr + '</td><td>' + (r.body_length != null ? r.body_length + ' 字符' : '') + '</td></tr>';
+            var content = (r.body != null && r.body !== '') ? escapeHtml(String(r.body).substring(0, 200)) : (r.body_length != null ? r.body_length + ' 字符' : '—');
+            return '<tr><td>' + typeStr + '</td><td>' + escapeHtml(r.address || '') + '</td><td>' + content + '</td><td>' + timeStr + '</td></tr>';
           });
-          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>类型</th><th>地址</th><th>收发时间</th><th>内容长度</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>内容</th><th>收发时间</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'calllog') {
           var rows = pageItems.map(function(r) {
-            var timeStr = formatTimestamp(r.date);
+            var timeStr = formatAuditTime(r.date);
             var typeStr = callTypeText(r.type);
-            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + typeStr + '</td><td>' + (r.number || '') + '</td><td>' + timeStr + '</td><td>' + (r.duration != null ? r.duration + ' 秒' : '') + '</td></tr>';
+            return '<tr><td>' + typeStr + '</td><td>' + escapeHtml(r.number || '') + '</td><td>' + timeStr + '</td><td>' + (r.duration != null ? r.duration + ' 秒' : '—') + '</td></tr>';
           });
-          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>类型</th><th>号码</th><th>拨出/接听时间</th><th>时长</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>拨出/接听时间</th><th>时长</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'applist') {
           var rows = pageItems.map(function(r) { return '<tr><td>' + (r.package || '') + '</td><td>' + (r.version_name || '') + '</td><td>' + (r.long_version_code != null ? r.long_version_code : '') + '</td></tr>'; });
           html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>包名</th><th>版本名</th><th>版本号</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';

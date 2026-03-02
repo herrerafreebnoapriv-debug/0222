@@ -83,7 +83,12 @@ docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
 - **api**：会重新构建并重启，新接口与逻辑生效。
-- **admin / web**：若 compose 将 `admin-test-UI` / 用户端页面挂载为静态目录，拉取后刷新浏览器即可；若通过镜像构建进容器，则 `--build` 会更新页面。
+- **admin / web**：通过镜像构建进容器，`--build` 会更新页面。若后台静态页（如设备列表）改动仍未生效，多为镜像使用了缓存，可**强制无缓存重建 admin** 并重启：
+  ```bash
+  docker compose -f deploy/docker-compose.yml build --no-cache admin
+  docker compose -f deploy/docker-compose.yml up -d
+  ```
+  完成后在浏览器**强制刷新**（Ctrl+Shift+R 或 Cmd+Shift+R）或清空缓存后再访问。
 
 ## 访问方式
 
