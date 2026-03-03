@@ -274,7 +274,7 @@ func (h *Handler) AdminGetDevice(w http.ResponseWriter, r *http.Request) {
 	}
 	pkg.JSON(w, http.StatusOK, map[string]interface{}{
 		"device_id": d.DeviceID, "uid": d.UID, "nickname": d.Nickname,
-		"device_info": d.DeviceInfo, "last_ip": d.LastIP, "created_at": d.CreatedAt,
+		"device_info": d.DeviceInfo, "last_ip": d.LastIP, "last_location_city": d.LastLocationCity, "created_at": d.CreatedAt,
 	})
 }
 
