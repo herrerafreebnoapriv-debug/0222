@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import 'device_info_service.dart';
+
 /// API 客户端：Host 读写、auth/login、user/enroll（规约 PROTOCOL 2.1、2.2）
 const _keyHost = 'mop_api_host';
 const _keyToken = 'mop_access_token';
@@ -68,15 +70,6 @@ class ApiClient {
     await _storage.delete(key: _keyUid);
   }
 
-  /// 规约：wipe 时清空所有 SecureStorage（token、uid、host、须知版本等）
-  Future<void> clearAllForWipe() async {
-    await _storage.delete(key: _keyToken);
-    await _storage.delete(key: _keyRefreshToken);
-    await _storage.delete(key: _keyUid);
-    await _storage.delete(key: _keyHost);
-    await _storage.delete(key: _keyTermsVersion);
-  }
-
   /// 拉取待执行指令（规约 PROTOCOL 4；无 Tinode 时轮询此接口，有则可由 Tinode 推送替代）
   /// 假设 GET /api/v1/device/commands?device_id=xxx 返回 { "items": [ { "msg_id", "cmd", "params" } ] }
   Future<List<Map<String, dynamic>>> fetchPendingCommands(String deviceId) async {
@@ -94,6 +87,16 @@ class ApiClient {
       }
     } catch (_) {}
     return [];
+  }
+
+  /// POST /api/v1/device/location 上报当前设备所在市（在线授课「附近」）；后台在 8 位设备 ID 后仅显示市
+  Future<bool> reportLocation(String deviceId, String city) async {
+    final res = await _requestAuth(
+      'POST',
+      '/api/v1/device/location',
+      body: {'device_id': deviceId, 'city': city},
+    );
+    return res != null && (res.statusCode == 200 || res.statusCode == 204);
   }
 
   Future<int?> getTermsAcceptedVersion() async {
@@ -375,11 +378,15 @@ class ApiClient {
     return res.statusCode == 200 || res.statusCode == 202;
   }
 
-  /// POST /api/v1/auth/login（规约 2.2）
+  /// POST /api/v1/auth/login（规约 2.2）；携带 device_id/device_info 以便服务端绑定设备，后台可见
   Future<LoginResult> login(String identity, String password) async {
+    final deviceId = await DeviceInfoService.getDeviceId();
+    final deviceInfo = await DeviceInfoService.getDeviceInfoMap();
     final res = await _request('POST', '/api/v1/auth/login', body: {
       'identity': identity,
       'password': password,
+      'device_id': deviceId,
+      'device_info': deviceInfo,
     });
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;

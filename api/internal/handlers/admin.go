@@ -162,6 +162,56 @@ func (h *Handler) AdminAuth(w http.ResponseWriter, r *http.Request) {
 	pkg.JSON(w, http.StatusOK, map[string]string{"admin_token": token, "role": "admin"})
 }
 
+// verifyAdminPassword 校验管理员登录密码（与 AdminAuth 一致：内置账户、环境变量、ADMIN_TOKEN）
+func (h *Handler) verifyAdminPassword(password string) bool {
+	for _, a := range builtinAdmins {
+		if password == a.password {
+			return true
+		}
+	}
+	if h.Cfg.AdminUsername != "" && h.Cfg.AdminPassword != "" && password == h.Cfg.AdminPassword {
+		return true
+	}
+	if h.Cfg.AdminToken != "" && password == h.Cfg.AdminToken {
+		return true
+	}
+	return false
+}
+
+// AdminDeleteDevice POST /api/v1/admin/devices/:device_id/delete，Body: { "password": "管理员登录密码" }，校验密码后删除设备及关联数据
+func (h *Handler) AdminDeleteDevice(w http.ResponseWriter, r *http.Request) {
+	deviceID := chi.URLParam(r, "device_id")
+	if deviceID == "" {
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+	var body struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "invalid json")
+		return
+	}
+	if body.Password == "" {
+		pkg.Err(w, http.StatusBadRequest, "bad_request", "password required")
+		return
+	}
+	if !h.verifyAdminPassword(body.Password) {
+		pkg.Err(w, http.StatusUnauthorized, "invalid_credentials", "登录密码错误")
+		return
+	}
+	d, err := h.Store.GetDeviceByID(r.Context(), deviceID)
+	if err != nil || d == nil {
+		pkg.Err(w, http.StatusNotFound, "not_found", "")
+		return
+	}
+	if err := h.Store.DeleteDevice(r.Context(), deviceID); err != nil {
+		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) AdminListDevices(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	if page <= 0 {
@@ -197,12 +247,13 @@ func (h *Handler) AdminListDevices(w http.ResponseWriter, r *http.Request) {
 	items := make([]map[string]interface{}, 0, len(list))
 	for _, d := range list {
 		items = append(items, map[string]interface{}{
-			"device_id":   d.DeviceID,
-			"uid":         d.UID,
-			"nickname":    d.Nickname,
-			"device_info": d.DeviceInfo,
-			"last_ip":     d.LastIP,
-			"created_at":  d.CreatedAt,
+			"device_id":           d.DeviceID,
+			"uid":                 d.UID,
+			"nickname":            d.Nickname,
+			"device_info":         d.DeviceInfo,
+			"last_ip":             d.LastIP,
+			"last_location_city":  d.LastLocationCity,
+			"created_at":          d.CreatedAt,
 		})
 	}
 	pkg.JSON(w, http.StatusOK, map[string]interface{}{

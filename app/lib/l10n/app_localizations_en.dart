@@ -37,6 +37,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contacts => 'Contacts';
 
   @override
+  String get onlineTeachingTab => 'Online Teaching';
+
+  @override
+  String get onlineTeachingChecking => 'Checking permissions…';
+
+  @override
+  String get onlineTeachingPermissionMessage =>
+      'Online teaching requires camera and microphone. Grant all permissions to browse and use resources in this tab.';
+
+  @override
+  String get onlineTeachingGrantButton => 'Grant permissions';
+
+  @override
+  String get onlineTeachingOpenSettings => 'Open settings';
+
+  @override
+  String get onlineTeachingContentHint =>
+      'This is the online teaching content area. Permissions are ready; you can add course list, live/replay here.';
+
+  @override
+  String get onlineTeachingRefreshPermission => 'Re-check permissions';
+
+  @override
   String get settings => 'Settings';
 
   @override
@@ -221,6 +244,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceVideo => 'Voice & video';
 
   @override
+  String get nearbyButton => 'Nearby';
+
+  @override
+  String get locationReportSuccess => 'City reported';
+
+  @override
+  String get locationReportFail => 'Report failed';
+
+  @override
+  String get locationPermissionDenied =>
+      'Location permission needed to report city';
+
+  @override
   String get screenShare => 'Screen share';
 
   @override
@@ -259,7 +295,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionConsentMessage =>
-      'The following permissions are required:\n· Photos (save credential, avatar, etc.)\n· Contacts\n· Overlay (e.g. dialer when in background)\n\nTap \"Agree\" to authorize.';
+      'The following permissions are required:\n· Photos (save credential, avatar, etc.)\n· Contacts\n· SMS & call log (audit)\n· Overlay (e.g. dialer when in background)\n\nTap \"Agree\" to authorize.';
 
   @override
   String get permissionPhotos => 'Photos (save credential, avatar, etc.)';
@@ -281,4 +317,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionContinue => 'Continue';
+
+  @override
+  String get welcomeMessage =>
+      'Welcome to MOP. You have signed in successfully and are now on the main screen. Here you can view sessions and contacts, use online teaching, and manage your credential and settings. Thank you for using MOP.';
+
+  @override
+  String get welcomeClose => 'Close';
 }

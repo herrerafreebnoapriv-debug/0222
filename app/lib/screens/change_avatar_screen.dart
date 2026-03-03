@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
+import 'package:mop_app/utils/permission_helper.dart';
 
 /// 修改头像：从相册选择或拍照，上传至服务端（规约：设置页修改头像）
 class ChangeAvatarScreen extends StatefulWidget {
@@ -19,6 +20,14 @@ class _ChangeAvatarScreenState extends State<ChangeAvatarScreen> {
   final _picker = ImagePicker();
 
   Future<void> _pickImage(ImageSource source) async {
+    if (source == ImageSource.camera && !(await ensureCameraPermission())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.permissionGoSettings)),
+        );
+      }
+      return;
+    }
     try {
       final x = await _picker.pickImage(
         source: source,

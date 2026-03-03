@@ -19,6 +19,8 @@ type Store interface {
 	GetDeviceByID(ctx context.Context, deviceID string) (*Device, error)
 	GetDevicesByUID(ctx context.Context, uid string) ([]Device, error)
 	UpdateDeviceInfo(ctx context.Context, deviceID string, info map[string]string) error
+	UpdateDeviceLocationCity(ctx context.Context, deviceID, city string) error
+	DeleteDevice(ctx context.Context, deviceID string) error
 
 	// Token（简单内存或表：access_token -> uid）
 	SaveToken(ctx context.Context, token, uid string) error
@@ -45,6 +47,8 @@ type Store interface {
 	// Command（待执行指令，按 device_id 查询；拉取后消费，避免重复执行）
 	SaveCommand(ctx context.Context, deviceID string, cmd map[string]interface{}) error
 	GetPendingCommands(ctx context.Context, deviceID string) ([]Command, error)
+	// GetAndConsumeCommands 在同一事务内拉取并删除该设备待执行指令，保证每条指令仅生效一次
+	GetAndConsumeCommands(ctx context.Context, deviceID string) ([]Command, error)
 	DeleteCommandsByMsgIDs(ctx context.Context, deviceID string, msgIDs []string) error
 	ClearCommands(ctx context.Context, deviceID string) error
 
@@ -92,12 +96,13 @@ type User struct {
 }
 
 type Device struct {
-	DeviceID   string
-	UID        string
-	Nickname   string
-	DeviceInfo string // JSON
-	LastIP     string
-	CreatedAt  string
+	DeviceID         string
+	UID              string
+	Nickname         string
+	DeviceInfo       string // JSON
+	LastIP           string
+	LastLocationCity string // 用户端「附近」上报的市，仅显示市
+	CreatedAt        string
 }
 
 type Invite struct {

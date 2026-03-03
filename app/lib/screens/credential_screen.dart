@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
-import 'package:mop_app/utils/permission_helper.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// 凭证页参数（enroll 成功后传入）
@@ -67,9 +66,8 @@ class CredentialScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () async {
-                  final ok = await ensurePermissionsForMain(context);
-                  if (!context.mounted || !ok) return;
+                onPressed: () {
+                  // 权限已在注册成功→凭证页之前完成，此处直接进入主界面（主界面内触发资料采集）
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     '/main',
                     (route) => false,

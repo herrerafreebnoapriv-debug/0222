@@ -16,4 +16,6 @@ rsync -avz --delete \
   --exclude='.env' \
   --exclude='deploy/certbot-webroot' \
   . "$REMOTE:$REMOTE_PATH/"
-echo "同步完成。请在远程机执行： cd $REMOTE_PATH && docker compose -f deploy/docker-compose.yml up -d --build"
+echo "同步完成。请在远程机执行以下命令使后台新代码生效："
+echo "  cd $REMOTE_PATH && ./deploy/update-backend.sh"
+echo "（或手动： cd $REMOTE_PATH && docker compose -f deploy/docker-compose.yml build --no-cache admin && docker compose -f deploy/docker-compose.yml up -d --build）"

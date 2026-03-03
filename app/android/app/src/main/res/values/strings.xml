@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 桌面显示的应用名称（英文） -->
+    <string name="app_name">MOi</string>
+</resources>

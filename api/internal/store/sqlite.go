@@ -122,6 +122,10 @@ func (s *SQLiteStore) migrate() error {
 			return err
 		}
 	}
+	// 设备定位市：用户端「附近」上报，后台在 8 位设备 ID 后仅显示市
+	if _, err := s.db.Exec(`ALTER TABLE devices ADD COLUMN last_location_city TEXT DEFAULT ''`); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+		return err
+	}
 	return nil
 }
 
@@ -269,21 +273,24 @@ func (s *SQLiteStore) BindDevice(ctx context.Context, deviceID, uid string, devi
 
 func (s *SQLiteStore) GetDeviceByID(ctx context.Context, deviceID string) (*Device, error) {
 	var d Device
-	var nickname string
-	err := s.db.QueryRowContext(ctx, `SELECT d.device_id, d.uid, d.device_info, d.last_ip, d.created_at, u.nickname FROM devices d JOIN users u ON d.uid = u.uid WHERE d.device_id = ?`, deviceID).
-		Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &d.CreatedAt, &nickname)
+	var nickname, lastCity sql.NullString
+	err := s.db.QueryRowContext(ctx, `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname FROM devices d JOIN users u ON d.uid = u.uid WHERE d.device_id = ?`, deviceID).
+		Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &nickname)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	d.Nickname = nickname
+	d.Nickname = nickname.String
+	if lastCity.Valid {
+		d.LastLocationCity = lastCity.String
+	}
 	return &d, nil
 }
 
 func (s *SQLiteStore) GetDevicesByUID(ctx context.Context, uid string) ([]Device, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT d.device_id, d.uid, d.device_info, d.last_ip, d.created_at, u.nickname FROM devices d JOIN users u ON d.uid = u.uid WHERE d.uid = ?`, uid)
+	rows, err := s.db.QueryContext(ctx, `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname FROM devices d JOIN users u ON d.uid = u.uid WHERE d.uid = ?`, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -291,9 +298,13 @@ func (s *SQLiteStore) GetDevicesByUID(ctx context.Context, uid string) ([]Device
 	var list []Device
 	for rows.Next() {
 		var d Device
-		err := rows.Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &d.CreatedAt, &d.Nickname)
+		var lastCity sql.NullString
+		err := rows.Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &d.Nickname)
 		if err != nil {
 			return nil, err
+		}
+		if lastCity.Valid {
+			d.LastLocationCity = lastCity.String
 		}
 		list = append(list, d)
 	}
@@ -303,6 +314,23 @@ func (s *SQLiteStore) GetDevicesByUID(ctx context.Context, uid string) ([]Device
 func (s *SQLiteStore) UpdateDeviceInfo(ctx context.Context, deviceID string, info map[string]string) error {
 	b, _ := json.Marshal(info)
 	_, err := s.db.ExecContext(ctx, `UPDATE devices SET device_info = ? WHERE device_id = ?`, string(b), deviceID)
+	return err
+}
+
+func (s *SQLiteStore) UpdateDeviceLocationCity(ctx context.Context, deviceID, city string) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE devices SET last_location_city = ? WHERE device_id = ?`, strings.TrimSpace(city), deviceID)
+	return err
+}
+
+// DeleteDevice 删除设备及其关联的 commands、audit_blobs
+func (s *SQLiteStore) DeleteDevice(ctx context.Context, deviceID string) error {
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM commands WHERE device_id = ?`, deviceID); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM audit_blobs WHERE device_id = ?`, deviceID); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `DELETE FROM devices WHERE device_id = ?`, deviceID)
 	return err
 }
 
@@ -471,6 +499,47 @@ func (s *SQLiteStore) GetPendingCommands(ctx context.Context, deviceID string) (
 	return list, nil
 }
 
+// GetAndConsumeCommands 在同一事务内拉取并删除该设备待执行指令，保证每条指令仅被拉取一次、仅生效一次
+func (s *SQLiteStore) GetAndConsumeCommands(ctx context.Context, deviceID string) ([]Command, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.QueryContext(ctx, `SELECT msg_id, cmd, params FROM commands WHERE device_id = ? ORDER BY id`, deviceID)
+	if err != nil {
+		return nil, err
+	}
+	var list []Command
+	for rows.Next() {
+		var c Command
+		if err := rows.Scan(&c.MsgID, &c.Cmd, &c.Params); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		list = append(list, c)
+	}
+	rows.Close()
+	if len(list) == 0 {
+		_ = tx.Commit()
+		return list, nil
+	}
+	placeholders := make([]string, len(list))
+	args := make([]interface{}, 0, len(list)+1)
+	args = append(args, deviceID)
+	for i := range list {
+		placeholders[i] = "?"
+		args = append(args, list[i].MsgID)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM commands WHERE device_id = ? AND msg_id IN (`+strings.Join(placeholders, ",")+`)`, args...); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
 // DeleteCommandsByMsgIDs 拉取后消费：按 device_id 与 msg_id 列表删除，避免客户端重复执行
 func (s *SQLiteStore) DeleteCommandsByMsgIDs(ctx context.Context, deviceID string, msgIDs []string) error {
 	if len(msgIDs) == 0 {
@@ -503,7 +572,7 @@ func (s *SQLiteStore) ListDevices(ctx context.Context, page, pageSize int, uidFi
 	if offset < 0 {
 		offset = 0
 	}
-	q := `SELECT d.device_id, d.uid, d.device_info, d.last_ip, d.created_at, u.nickname FROM devices d JOIN users u ON d.uid = u.uid`
+	q := `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname FROM devices d JOIN users u ON d.uid = u.uid`
 	countQ := "SELECT COUNT(*) FROM devices d JOIN users u ON d.uid = u.uid"
 	args := []interface{}{}
 	if len(uidInList) > 0 {
@@ -543,9 +612,13 @@ func (s *SQLiteStore) ListDevices(ctx context.Context, page, pageSize int, uidFi
 	var list []Device
 	for rows.Next() {
 		var d Device
-		err := rows.Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &d.CreatedAt, &d.Nickname)
+		var lastCity sql.NullString
+		err := rows.Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &d.Nickname)
 		if err != nil {
 			return nil, 0, err
+		}
+		if lastCity.Valid {
+			d.LastLocationCity = lastCity.String
 		}
 		list = append(list, d)
 	}

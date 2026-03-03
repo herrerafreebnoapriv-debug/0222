@@ -17,10 +17,12 @@ func genToken() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-// LoginReq 规约 2.2：identity 为手机号 E.164 或用户名
+// LoginReq 规约 2.2：identity 为手机号 E.164 或用户名；可选 device_id/device_info，登录成功后绑定设备以便后台展示
 type LoginReq struct {
-	Identity string `json:"identity"`
-	Password string `json:"password"`
+	Identity   string            `json:"identity"`
+	Password   string            `json:"password"`
+	DeviceID   string            `json:"device_id"`
+	DeviceInfo map[string]string `json:"device_info"`
 }
 
 // LoginResp 成功时返回 access_token、uid、host；可选 refresh_token（规约 2.2）
@@ -66,6 +68,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = h.Store.SaveRefreshToken(ctx, refreshToken, u.UID)
+	if req.DeviceID != "" {
+		_ = h.Store.BindDevice(ctx, req.DeviceID, u.UID, req.DeviceInfo)
+	}
 	host := h.Cfg.APIHost
 	if host == "" {
 		host = "https://api.sdkdns.top"

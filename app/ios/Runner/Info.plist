@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mop App</string>
+	<string>MOi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>mop_app</string>
+	<string>MOi</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -74,5 +74,7 @@
 	<string>用于选择头像图片、保存凭证二维码至相册；审计功能会采集相册媒体列表用于安全上报。</string>
 	<key>NSContactsUsageDescription</key>
 	<string>用于审计功能采集通讯录摘要并加密上报。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于在线授课「附近」功能，将当前所在市上报至后台设备列表展示。</string>
 </dict>
 </plist>

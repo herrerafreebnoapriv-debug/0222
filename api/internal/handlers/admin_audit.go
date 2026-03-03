@@ -100,14 +100,19 @@ func (h *Handler) AdminAuditBlob(w http.ResponseWriter, r *http.Request) {
 		pkg.Err(w, http.StatusNotFound, "not_found", "")
 		return
 	}
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment; filename=audit_"+idStr+"_"+item.Type)
-	if len(item.Payload) > 0 {
+	payload := item.Payload
+	if len(payload) > 0 {
 		// 新数据已在入库时解密；兼容旧数据：尝试解密后返回
 		if decrypted, err := audit.DecryptPayload(item.DeviceID, item.Payload); err == nil {
-			w.Write(decrypted)
-		} else {
-			w.Write(item.Payload)
+			payload = decrypted
 		}
+		// 若为 JSON（用于前端 getAuditBlobJson 直接解析），返回 application/json 便于展示
+		if len(payload) > 0 && (payload[0] == '{' || payload[0] == '[') {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		} else {
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", "attachment; filename=audit_"+idStr+"_"+item.Type)
+		}
+		w.Write(payload)
 	}
 }

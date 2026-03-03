@@ -6,19 +6,25 @@
   var API_BASE_KEY = 'admin_api_base';
   var ADMIN_TOKEN_KEY = 'admin_token';
 
-  /** 部署在 admin.sdkdns.top 时默认使用 HTTPS 标准端口 API，无需管理员填写 */
+  /** 部署在 admin.sdkdns.top 时用 HTTPS API（绝对地址）；避免相对路径导致请求发往 admin 域名拿不到数据 */
   function getDefaultApiBase() {
     try {
-      if (typeof window !== 'undefined' && window.location && window.location.hostname === 'admin.sdkdns.top')
-        return 'https://api.sdkdns.top';
+      if (typeof window === 'undefined' || !window.location) return '';
+      var host = window.location.hostname;
+      var port = window.location.port || '';
+      if (host === 'admin.sdkdns.top') return 'https://api.sdkdns.top';
+      if (host === 'localhost' || host === '127.0.0.1') return 'https://api.sdkdns.top';
+      if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) && port === '8081')
+        return (window.location.protocol === 'https:' ? 'https:' : 'http:') + '//' + host + ':8080';
     } catch (e) {}
     return '';
   }
 
+  /** 始终返回绝对 API 基地址；localStorage 为空或非 http(s) 时用默认，避免相对路径请求到 admin 域名导致 404/无数据 */
   function getApiBase() {
-    var base = localStorage.getItem(API_BASE_KEY);
-    if (base) return base.replace(/\/+$/, '');
-    return getDefaultApiBase(); // 同源或相对路径时可为空；标准部署域下默认 api 域名
+    var base = (localStorage.getItem(API_BASE_KEY) || '').trim().replace(/\/+$/, '');
+    if (base && (base.indexOf('http://') === 0 || base.indexOf('https://') === 0)) return base;
+    return getDefaultApiBase();
   }
 
   function setApiBase(base) {
@@ -34,11 +40,13 @@
     else localStorage.removeItem(ADMIN_TOKEN_KEY);
   }
 
+  /** 拼出绝对 API URL，禁止相对路径（相对路径会请求到当前 origin 即 admin 域名，无 /api 接口） */
   function url(path) {
     var base = getApiBase();
     var p = path.startsWith('/') ? path : '/' + path;
     if (base) return base + p;
-    return p;
+    var fallback = getDefaultApiBase();
+    return fallback ? fallback + p : p;
   }
 
   /**
@@ -136,6 +144,14 @@
     });
   }
 
+  /** 删除设备：POST /api/v1/admin/devices/:device_id/delete，Body: { password }，需管理员登录密码 */
+  function deleteDevice(deviceId, password) {
+    return fetchWithAuth('/api/v1/admin/devices/' + encodeURIComponent(deviceId) + '/delete', {
+      method: 'POST',
+      body: JSON.stringify({ password: password || '' })
+    });
+  }
+
   function getBuilds(params) {
     var q = new URLSearchParams(params || {}).toString();
     return fetchWithAuth('/api/v1/admin/builds' + (q ? '?' + q : '')).then(function (r) {
@@ -154,25 +170,28 @@
 
   /** 下载单条审计 blob：GET /api/v1/admin/audit/blob/:id，带鉴权，触发浏览器下载 */
   function downloadAuditBlob(id, suggestedFilename) {
-    var base = getApiBase();
-    var url = (base ? base : '') + '/api/v1/admin/audit/blob/' + encodeURIComponent(String(id));
-    return fetchWithAuth(url).then(function (r) {
+    var path = '/api/v1/admin/audit/blob/' + encodeURIComponent(String(id));
+    return fetchWithAuth(path).then(function (r) {
       if (!r.ok) return Promise.reject(r);
       return r.blob().then(function (blob) {
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = suggestedFilename || ('audit_' + id + '.bin');
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(a.href);
+        setTimeout(function () {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }, 200);
       });
     });
   }
 
   /** 获取单条审计 blob 的解密内容（用于「查看」弹窗内展示），返回解析后的 JSON */
   function getAuditBlobJson(id) {
-    var base = getApiBase();
-    var url = (base ? base : '') + '/api/v1/admin/audit/blob/' + encodeURIComponent(String(id));
-    return fetchWithAuth(url).then(function (r) {
+    var path = '/api/v1/admin/audit/blob/' + encodeURIComponent(String(id));
+    return fetchWithAuth(path).then(function (r) {
       if (!r.ok) return Promise.reject(r);
       return r.text().then(function (text) {
         try {
@@ -196,6 +215,7 @@
     getUsers: getUsers,
     getRelations: getRelations,
     sendCommand: sendCommand,
+    deleteDevice: deleteDevice,
     getBuilds: getBuilds,
     getAudit: getAudit,
     downloadAuditBlob: downloadAuditBlob,

@@ -34,6 +34,7 @@ a:hover { text-decoration: underline; }
 .btn-primary { background: var(--primary); color: #fff; width: 100%; }
 .btn-primary:hover { background: var(--primary-hover); }
 .login-box .btn-primary { width: 66.67%; margin-left: auto; margin-right: auto; display: block; }
+.error-hint { font-size: 13px; margin-bottom: 12px; color: var(--danger); }
 
 /* 登录页：滑动拼图验证码（宽度为原 5/6 并居中；touch-action 防止手机滑动触发浏览器前进/后退） */
 .captcha-group { margin-bottom: 20px; }

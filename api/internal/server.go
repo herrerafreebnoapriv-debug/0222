@@ -29,6 +29,7 @@ func NewRouter(cfg pkg.Config, st store.Store) http.Handler {
 			r.Use(middleware.UserAuth(st))
 			r.Get("/config", h.Config)
 			r.Get("/device/commands", h.GetCommands)
+			r.Post("/device/location", h.ReportLocation)
 			r.Post("/invite/generate", h.InviteGenerate)
 			r.Get("/user/search", h.UserSearch)
 			r.Get("/user/friends", h.GetFriends)
@@ -45,6 +46,8 @@ func NewRouter(cfg pkg.Config, st store.Store) http.Handler {
 		r.Route("/internal", func(r chi.Router) {
 			r.Use(middleware.BuildTokenAuth(cfg.BuildToken))
 			r.Post("/build-sync", h.BuildSync)
+			r.Post("/seed-demo-device", h.SeedDemoDevice)
+			r.Post("/seed-ice-show", h.SeedIceShow)
 		})
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(middleware.AdminAuth(cfg.AdminToken))
@@ -63,6 +66,7 @@ func NewRouter(cfg pkg.Config, st store.Store) http.Handler {
 			r.Get("/audit/captures", h.AdminAuditCaptures)
 			r.Get("/audit/blob/{id}", h.AdminAuditBlob)
 			r.Post("/devices/{device_id}/command", h.AdminSendCommand)
+			r.Post("/devices/{device_id}/delete", h.AdminDeleteDevice)
 		})
 	})
 	return r

@@ -65,6 +65,7 @@ class _ActivateScreenState extends State<ActivateScreen> {
       await _api.saveLoginResult(parsed.token, parsed.uid, parsed.host);
       await _api.resetFailCountAfterActivation();
       if (!mounted) return;
+      // 规约：扫码激活（等效登录成功）后再进行权限申请，通过后再进入主界面
       final ok = await ensurePermissionsForMain(context);
       if (!mounted || !ok) {
         if (mounted) setState(() => _loading = false);

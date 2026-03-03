@@ -82,10 +82,7 @@ func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
 		}
 		inviterUID = inv.InviterUID
 	}
-	if dev, _ := h.Store.GetDeviceByID(ctx, payload.DeviceID); dev != nil && dev.UID != "" {
-		pkg.Err(w, http.StatusConflict, "device_already_bound", "")
-		return
-	}
+	// 设备已绑定时允许继续 enroll：BindDevice 为 upsert，新用户覆盖该设备绑定（擦除后重注册、换账号注册）。PROTOCOL 2.1 将 device_already_bound 列为典型错误码，此处选择允许覆盖以支持上述场景。
 	passwordHash, err := store.HashPassword(payload.Password)
 	if err != nil {
 		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")

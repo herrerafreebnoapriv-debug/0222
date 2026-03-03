@@ -74,6 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result.isSuccess) {
         if (_termsAccepted) await _api.setTermsAcceptedVersion(1);
         if (!mounted) return;
+        // 规约：登录成功后再进行权限申请，通过后再进入主界面（主界面内触发资料采集）
         final ok = await ensurePermissionsForMain(context);
         if (!mounted || !ok) {
           if (mounted) setState(() => _loading = false);

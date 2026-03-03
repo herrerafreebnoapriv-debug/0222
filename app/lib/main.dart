@@ -74,6 +74,16 @@ class _MopAppState extends State<MopApp> {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         locale: _locale,
+        builder: (context, child) {
+          final ext = Theme.of(context).extension<AppThemeExtension>();
+          if (ext == null || child == null) return child ?? const SizedBox.shrink();
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(gradient: ext.backgroundGradient),
+            child: child,
+          );
+        },
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

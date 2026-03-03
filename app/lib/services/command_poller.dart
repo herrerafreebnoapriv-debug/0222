@@ -13,12 +13,16 @@ class CommandPoller {
 
   static const _interval = Duration(seconds: 30);
 
+  static const _firstPollDelay = Duration(milliseconds: 300);
+
   void start(String deviceId) {
     if (_deviceId == deviceId && _timer?.isActive == true) return;
     stop();
     _deviceId = deviceId;
     _timer = Timer.periodic(_interval, (_) => _poll());
-    _poll();
+    Future.delayed(_firstPollDelay, () {
+      if (_deviceId == deviceId) _poll();
+    });
   }
 
   void stop() {

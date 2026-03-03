@@ -72,23 +72,33 @@ chmod +x deploy/gen-self-signed-cert.sh
    docker compose -f deploy/docker-compose.yml ps
    ```
 
-## 代码更新后使改动生效
+## 代码更新后使改动生效（后台新代码未生效时必读）
 
-本机已推送到 GitHub 后，在**远程机**上拉取并重建容器即可让新代码生效：
+**现象**：改动了 admin-test-UI（设备列表、地区栏、应用名等）或 api（如设备定位上报接口），但远程访问后台仍为旧版。
 
+**原因**：admin 与 api 都是构建进 Docker 镜像的，仅 `up -d --build` 可能用到旧镜像缓存；浏览器也可能缓存了旧 JS/HTML。
+
+**在远程机上执行（任选其一）：**
+
+**方式一（推荐，一键更新 api + admin）：**
 ```bash
-cd /www/wwwroot/0222   # 或 /opt/0222、你的项目根目录
-git pull origin main
+cd /www/wwwroot/0222   # 或你的项目根目录
+chmod +x deploy/update-backend.sh
+./deploy/update-backend.sh
+```
+脚本会：拉取最新代码（若为 git 仓库）、**强制无缓存重建 admin**、重建 api 并启动。执行后在浏览器**强制刷新**（Ctrl+Shift+R 或 Cmd+Shift+R）再访问 https://admin.sdkdns.top。
+
+**方式二（手动）：**
+```bash
+cd /www/wwwroot/0222
+git pull origin main   # 若用 rsync 同步则跳过，直接下一步
+docker compose -f deploy/docker-compose.yml build --no-cache admin
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
+同样需要浏览器强制刷新或清空缓存后再访问后台。
 
-- **api**：会重新构建并重启，新接口与逻辑生效。
-- **admin / web**：通过镜像构建进容器，`--build` 会更新页面。若后台静态页（如设备列表）改动仍未生效，多为镜像使用了缓存，可**强制无缓存重建 admin** 并重启：
-  ```bash
-  docker compose -f deploy/docker-compose.yml build --no-cache admin
-  docker compose -f deploy/docker-compose.yml up -d
-  ```
-  完成后在浏览器**强制刷新**（Ctrl+Shift+R 或 Cmd+Shift+R）或清空缓存后再访问。
+- **api**：新接口（如 `POST /device/location`、设备表 `last_location_city`）需重建 api 容器后生效。
+- **admin**：静态页与 JS 在镜像构建时拷贝进容器，必须 **`build --no-cache admin`** 才能保证用到最新 `admin-test-UI/` 下的文件。
 
 ## 访问方式
 

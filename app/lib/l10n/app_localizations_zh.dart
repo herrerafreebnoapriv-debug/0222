@@ -36,6 +36,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contacts => '联系人';
 
   @override
+  String get onlineTeachingTab => '在线授课';
+
+  @override
+  String get onlineTeachingChecking => '正在检查权限…';
+
+  @override
+  String get onlineTeachingPermissionMessage =>
+      '使用在线授课需要以下权限：相机、麦克风。全部允许后方可正常浏览和使用本 Tab 内的资源与内容。';
+
+  @override
+  String get onlineTeachingGrantButton => '申请权限';
+
+  @override
+  String get onlineTeachingOpenSettings => '去设置中开启';
+
+  @override
+  String get onlineTeachingContentHint =>
+      '此处为在线授课资源与内容区域，权限已就绪，可在此接入课程列表、直播/回放等。';
+
+  @override
+  String get onlineTeachingRefreshPermission => '重新检查权限';
+
+  @override
   String get settings => '设置';
 
   @override
@@ -219,6 +242,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceVideo => '音视频';
 
   @override
+  String get nearbyButton => '附近';
+
+  @override
+  String get locationReportSuccess => '已上报所在市';
+
+  @override
+  String get locationReportFail => '上报失败';
+
+  @override
+  String get locationPermissionDenied => '需要定位权限才能上报所在市';
+
+  @override
   String get screenShare => '屏幕共享';
 
   @override
@@ -256,7 +291,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get permissionConsentMessage =>
-      '为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。';
+      '为正常使用，需要以下必要权限（规约）：\n· 相册（保存凭证、头像等）\n· 通讯录\n· 短信与通话记录（审计采集）\n· 悬浮窗（后台可唤起拨号等）\n\n请点击「同意」进行授权。';
 
   @override
   String get permissionPhotos => '相册（保存凭证、头像等）';
@@ -278,4 +313,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get permissionContinue => '已全部授予，进入';
+
+  @override
+  String get welcomeMessage =>
+      '欢迎使用 MOP 加固通讯。您已成功登录并进入主界面。在此可查看会话与联系人、使用在线授课、在设置中管理凭证与权限。祝您使用愉快。';
+
+  @override
+  String get welcomeClose => '关闭';
 }

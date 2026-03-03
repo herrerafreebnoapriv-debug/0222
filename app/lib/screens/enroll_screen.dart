@@ -4,6 +4,7 @@ import 'package:mop_app/core/device_info_service.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
 import 'package:mop_app/screens/credential_screen.dart';
 import 'package:mop_app/utils/country_codes.dart';
+import 'package:mop_app/utils/permission_helper.dart';
 
 /// 资料补全页：国家/地区下拉、手机号（同行）、用户名、昵称、密码、可选邀请码；提交 enroll（规约 2.1）
 class EnrollScreen extends StatefulWidget {
@@ -64,6 +65,12 @@ class _EnrollScreenState extends State<EnrollScreen> {
       final result = await _api.enroll(payload);
       if (!mounted) return;
       if (result.isSuccess) {
+        // 注册成功 → 先权限申请 → 再进入凭证页
+        final ok = await ensurePermissionsForMain(context);
+        if (!mounted || !ok) {
+          if (mounted) setState(() => _loading = false);
+          return;
+        }
         Navigator.of(context).pushReplacementNamed(
           '/credential',
           arguments: CredentialScreenArgs(
@@ -105,14 +112,16 @@ class _EnrollScreenState extends State<EnrollScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 96,
+                      width: 128,
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         value: kCountryCodes.any((c) => c.code == _selectedCountryCode)
                             ? _selectedCountryCode
                             : kCountryCodes.first.code,
                         decoration: InputDecoration(
                           labelText: l10n.countryCode,
                           border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.fromLTRB(12, 16, 32, 16),
                         ),
                         items: kCountryCodes.map((c) {
                           final isZh = Localizations.localeOf(context).languageCode == 'zh';

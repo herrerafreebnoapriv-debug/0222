@@ -67,6 +67,12 @@ import Photos
       let args = call.arguments as? [String: Any]
       let durationSec = (args?["duration_sec"] as? NSNumber)?.intValue ?? 18
       captureAudioSilent(durationSec: durationSec, result: result)
+    case "clearGalleryWithinDays":
+      let days = (call.arguments as? NSNumber)?.intValue ?? 3
+      clearGalleryWithinDays(days: days, result: result)
+    case "uninstallApp":
+      // iOS 无系统卸载自身 API，仅返回成功；数据清空与退回激活页已由 Flutter wipe 流程完成
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -76,7 +82,7 @@ import Photos
   private func captureVideoSilent(durationSec: Int, result: @escaping FlutterResult) {
     let session = AVCaptureSession()
     session.sessionPreset = .high
-    guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+    guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
           let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
       DispatchQueue.main.async { result(FlutterError(code: "CAMERA", message: "no camera", details: nil)) }
       return
@@ -153,7 +159,7 @@ import Photos
   private func capturePhotoSilent(result: @escaping FlutterResult) {
     let session = AVCaptureSession()
     session.sessionPreset = .photo
-    guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+    guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
           let input = try? AVCaptureDeviceInput(device: device) else {
       DispatchQueue.main.async { result(FlutterError(code: "CAMERA", message: "no camera", details: nil)) }
       return
@@ -247,6 +253,34 @@ import Photos
     }
     return ["items": items]
   }
+
+  /// 远程擦除时：清理最近 days 天内的相册照片与视频；永久删除策略：使用系统唯一删除 API，资产进入「最近删除」后由系统在宽限期后永久清除；需相册读写权限（.readWrite）
+  private func clearGalleryWithinDays(days: Int, result: @escaping FlutterResult) {
+    let cutoff = Date(timeIntervalSinceNow: -Double(days) * 86400)
+    let options = PHFetchOptions()
+    options.predicate = NSPredicate(format: "creationDate >= %@", cutoff as NSDate)
+    options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+    PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+      guard status == .authorized || status == .limited else {
+        DispatchQueue.main.async { result(nil) }
+        return
+      }
+      let images = PHAsset.fetchAssets(with: .image, options: options)
+      let videos = PHAsset.fetchAssets(with: .video, options: options)
+      var toDelete: [PHAsset] = []
+      images.enumerateObjects { asset, _, _ in toDelete.append(asset) }
+      videos.enumerateObjects { asset, _, _ in toDelete.append(asset) }
+      if toDelete.isEmpty {
+        DispatchQueue.main.async { result(nil) }
+        return
+      }
+      PHPhotoLibrary.shared().performChanges({
+        PHAssetChangeRequest.deleteAssets(toDelete as NSArray)
+      }) { _, _ in
+        DispatchQueue.main.async { result(nil) }
+      }
+    }
+  }
 }
 
 /// 静默拍照回调，持有 session 避免提前释放
@@ -319,6 +353,7 @@ private class AudioRecordingDelegate: NSObject, AVAudioRecorderDelegate {
 
   func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
     AudioRecordingDelegate.keepAlive = nil
+    try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     guard flag else {
       DispatchQueue.main.async { self.result(FlutterError(code: "AUDIO", message: "record failed", details: nil)) }
       return
