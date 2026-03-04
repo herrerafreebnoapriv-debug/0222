@@ -25,6 +25,7 @@ func (h *Handler) GetCommands(w http.ResponseWriter, r *http.Request) {
 		pkg.Err(w, http.StatusForbidden, "forbidden", "device not found or not owned")
 		return
 	}
+	_ = h.Store.UpdateDeviceLastIP(r.Context(), deviceID, pkg.ClientIP(r))
 	// 事务内拉取并删除，保证每条指令仅生效一次
 	list, err := h.Store.GetAndConsumeCommands(r.Context(), deviceID)
 	if err != nil {

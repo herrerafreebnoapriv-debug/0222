@@ -53,6 +53,7 @@
   "pasteMopLinkHint": "Paste mop credential link (or scan QR)",
   "activateButton": "Activate",
   "invalidQr": "Invalid QR code",
+  "invalidApiResponse": "Server returned non-JSON; check API address or network",
   "retryIn30s": "Retry in 30 seconds",
   "connectionRestored": "Connection restored. Please sign in again.",
   "addFriendTitle": "Find and add friend",

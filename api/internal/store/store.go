@@ -20,6 +20,7 @@ type Store interface {
 	GetDevicesByUID(ctx context.Context, uid string) ([]Device, error)
 	UpdateDeviceInfo(ctx context.Context, deviceID string, info map[string]string) error
 	UpdateDeviceLocationCity(ctx context.Context, deviceID, city string) error
+	UpdateDeviceLastIP(ctx context.Context, deviceID, ip string) error
 	DeleteDevice(ctx context.Context, deviceID string) error
 
 	// Token（简单内存或表：access_token -> uid）

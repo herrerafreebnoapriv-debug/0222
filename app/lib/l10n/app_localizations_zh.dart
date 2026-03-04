@@ -170,6 +170,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get invalidQr => '无效二维码';
 
   @override
+  String get invalidApiResponse => '服务器返回了非 JSON，请检查 API 地址或网络';
+
+  @override
   String get retryIn30s => '30 秒后自动重试';
 
   @override

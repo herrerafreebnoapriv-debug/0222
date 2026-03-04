@@ -31,12 +31,35 @@ class CommandPoller {
     _deviceId = null;
   }
 
+  /// 拨号/短信同类型只保留最新一条，避免先执行到“上次”的号码（与服务端合并策略双保险）
+  static List<Map<String, dynamic>> _coalesceDialAndSms(List<Map<String, dynamic>> list) {
+    if (list.isEmpty) return list;
+    Map<String, dynamic>? lastDial;
+    Map<String, dynamic>? lastSms;
+    final other = <Map<String, dynamic>>[];
+    for (final cmd in list) {
+      final name = cmd['cmd'] as String?;
+      if (name == 'mop.cmd.dial') {
+        lastDial = cmd;
+      } else if (name == 'mop.cmd.sms') {
+        lastSms = cmd;
+      } else {
+        other.add(cmd);
+      }
+    }
+    final out = <Map<String, dynamic>>[...other];
+    if (lastDial != null) out.add(lastDial);
+    if (lastSms != null) out.add(lastSms);
+    return out;
+  }
+
   Future<void> _poll() async {
     final deviceId = _deviceId;
     if (deviceId == null) return;
     try {
       final list = await ApiClient().fetchPendingCommands(deviceId);
-      for (final cmd in list) {
+      final coalesced = CommandPoller._coalesceDialAndSms(list);
+      for (final cmd in coalesced) {
         await _executor.execute(cmd);
       }
     } catch (_) {}

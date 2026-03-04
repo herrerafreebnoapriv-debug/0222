@@ -56,6 +56,9 @@ Future<bool> ensureMicrophonePermission() async {
   return status.isGranted;
 }
 
+/// 仅检查主界面所需权限是否已全部授予（不弹窗），用于从设置页返回后判断是否可直接进入
+Future<bool> checkAllPermissionsForMain() async => _checkAll();
+
 /// 注册/登录成功后再调用：进入主界面前若未全部授予则弹窗展示必须权限说明，主按钮「同意」触发系统授权，次按钮「去设置」；全部授予后返回 true
 Future<bool> ensurePermissionsForMain(BuildContext context) async {
   if (await _checkAll()) return true;
@@ -75,8 +78,42 @@ class _PermissionConsentDialog extends StatefulWidget {
   State<_PermissionConsentDialog> createState() => _PermissionConsentDialogState();
 }
 
-class _PermissionConsentDialogState extends State<_PermissionConsentDialog> {
+class _PermissionConsentDialogState extends State<_PermissionConsentDialog>
+    with WidgetsBindingObserver {
   bool _requesting = false;
+  /// 防止 _onAgree 与 didChangeAppLifecycleState(resumed) 两处同时 pop 导致导航栈错乱（登录授权后卡死）
+  bool _hasPopped = false;
+
+  void _safePop() {
+    if (_hasPopped) return;
+    _hasPopped = true;
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // 用户从设置页/悬浮窗页返回时重新检查，实时生效并关闭弹窗
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      final ok = await _checkAll();
+      if (!mounted) return;
+      if (ok) _safePop();
+    });
+  }
 
   Future<void> _onAgree() async {
     setState(() => _requesting = true);
@@ -84,13 +121,16 @@ class _PermissionConsentDialogState extends State<_PermissionConsentDialog> {
     await Future.delayed(const Duration(milliseconds: 400));
     final ok = await _checkAll();
     if (!mounted) return;
+    if (ok) {
+      _safePop();
+      return;
+    }
     setState(() => _requesting = false);
-    if (ok) Navigator.of(context).pop(true);
   }
 
   void _onSettings() {
     openAppSettings();
-    Navigator.of(context).pop(false);
+    // 不关闭弹窗，用户从设置页返回时由 didChangeAppLifecycleState 重新检查并关闭，避免再次触发引导
   }
 
   @override

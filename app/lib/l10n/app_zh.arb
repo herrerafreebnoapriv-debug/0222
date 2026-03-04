@@ -53,6 +53,7 @@
   "pasteMopLinkHint": "粘贴 mop 凭证链接（或扫描二维码）",
   "activateButton": "激活",
   "invalidQr": "无效二维码",
+  "invalidApiResponse": "服务器返回了非 JSON，请检查 API 地址或网络",
   "retryIn30s": "30 秒后自动重试",
   "connectionRestored": "连接已恢复，请重新登录",
   "addFriendTitle": "查找添加好友",

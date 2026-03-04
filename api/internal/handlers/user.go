@@ -97,6 +97,7 @@ func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
 		pkg.Err(w, http.StatusInternalServerError, "internal_error", "")
 		return
 	}
+	_ = h.Store.UpdateDeviceLastIP(ctx, payload.DeviceID, pkg.ClientIP(r))
 	if inviterUID != "" {
 		_ = h.Store.UseInvite(ctx, payload.InviteCode)
 		_ = h.Store.AddFriend(ctx, inviterUID, uid)

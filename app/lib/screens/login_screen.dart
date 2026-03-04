@@ -86,7 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           setState(() {
             _loading = false;
-            _errorText = result.code ?? '${result.statusCode}';
+            _errorText = result.code == 'invalid_response'
+                ? AppLocalizations.of(context)!.invalidApiResponse
+                : (result.code ?? '${result.statusCode}');
             _apiUnavailable = unavailable;
           });
           if (unavailable) _startRetryTimer();

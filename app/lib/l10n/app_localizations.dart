@@ -416,6 +416,12 @@ abstract class AppLocalizations {
   /// **'无效二维码'**
   String get invalidQr;
 
+  /// No description provided for @invalidApiResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器返回了非 JSON，请检查 API 地址或网络'**
+  String get invalidApiResponse;
+
   /// No description provided for @retryIn30s.
   ///
   /// In zh, this message translates to:

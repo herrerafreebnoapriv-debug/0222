@@ -165,16 +165,29 @@ class _OnlineTeachingScreenState extends State<OnlineTeachingScreen> {
     super.initState();
     // 延后权限检查，避免首帧与主界面争抢导致卡顿（优化首次登录后卡顿）
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 100), () {
+      Future.delayed(const Duration(milliseconds: 1000), () {
         if (mounted) _checkPermissions();
       });
     });
   }
 
+  /// 检查权限；若未授予则主动触发系统权限申请（用户点击在线授课 Tab 即会弹出相机/麦克风请求）
   Future<void> _checkPermissions() async {
     setState(() => _checking = true);
-    final camera = await Permission.camera.status.isGranted;
-    final mic = await Permission.microphone.status.isGranted;
+    bool camera = await Permission.camera.status.isGranted;
+    bool mic = await Permission.microphone.status.isGranted;
+    if (!camera || !mic) {
+      if (!camera) {
+        final status = await Permission.camera.request();
+        camera = status.isGranted;
+      }
+      if (!mounted) return;
+      if (!mic) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        final status = await Permission.microphone.request();
+        mic = status.isGranted;
+      }
+    }
     if (!mounted) return;
     setState(() {
       _checking = false;

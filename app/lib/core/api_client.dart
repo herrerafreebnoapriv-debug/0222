@@ -18,8 +18,8 @@ const _keyTermsVersion = 'user_terms_accepted_version';
 /// 内置默认 Host（规约：正常使用内置 API，失效时扫码激活）
 const defaultApiHost = 'https://api.sdkdns.top';
 
-/// 开发/联调：Debug 模式下无已存 Host 时使用，便于用 user123 等内置账户连 mop2
-const _debugApiHost = 'http://89.223.95.18';
+/// 开发/联调：Debug 模式下无已存 Host 时使用；若该地址返回 HTML 会触发「format exception: <html>」，可改为 defaultApiHost 或实际 API 地址
+const _debugApiHost = 'https://api.sdkdns.top';
 
 /// PROTOCOL 第 7 节：单次请求超时 15 秒、连续 3 次失败（超时/连接失败/5xx）判定 API 失效
 const _requestTimeoutSeconds = 15;
@@ -378,6 +378,19 @@ class ApiClient {
     return res.statusCode == 200 || res.statusCode == 202;
   }
 
+  /// 安全解析 JSON，若响应为 HTML 或非法 JSON 返回 null，避免 FormatException
+  static Map<String, dynamic>? _safeDecode(String body) {
+    if (body.isEmpty) return null;
+    final t = body.trimLeft();
+    if (t.startsWith('<')) return null;
+    try {
+      final v = jsonDecode(body);
+      return v is Map ? Map<String, dynamic>.from(v as Map) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// POST /api/v1/auth/login（规约 2.2）；携带 device_id/device_info 以便服务端绑定设备，后台可见
   Future<LoginResult> login(String identity, String password) async {
     final deviceId = await DeviceInfoService.getDeviceId();
@@ -389,7 +402,10 @@ class ApiClient {
       'device_info': deviceInfo,
     });
     if (res.statusCode == 200) {
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final data = _safeDecode(res.body);
+      if (data == null) {
+        return LoginResult.fail(statusCode: res.statusCode, code: 'invalid_response');
+      }
       final token = data['access_token'] as String?;
       final uid = data['uid'] as String?;
       final host = data['host'] as String? ?? await getHost();
@@ -399,9 +415,9 @@ class ApiClient {
         return LoginResult.success(uid: uid, host: host);
       }
     }
-    final body = res.body.isNotEmpty ? jsonDecode(res.body) as Map<String, dynamic>? : null;
+    final body = _safeDecode(res.body);
     final code = body?['code'] as String?;
-    return LoginResult.fail(statusCode: res.statusCode, code: code);
+    return LoginResult.fail(statusCode: res.statusCode, code: code ?? (body == null ? 'invalid_response' : null));
   }
 
   /// POST /api/v1/user/change-password 修改密码（具体 path 由实现约定）

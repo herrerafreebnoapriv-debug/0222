@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mop_app/core/api_client.dart';
 import 'package:mop_app/core/app_locale.dart';
 import 'package:mop_app/core/app_navigator.dart';
 import 'package:mop_app/core/app_theme.dart';
@@ -91,8 +92,9 @@ class _MopAppState extends State<MopApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        initialRoute: '/login',
+        initialRoute: '/',
         routes: {
+          '/': (_) => const _StartupGatePage(),
           '/login': (_) => const LoginScreen(),
           '/activate': (_) => const ActivateScreen(),
           '/enroll': (_) => const EnrollScreen(),
@@ -109,6 +111,36 @@ class _MopAppState extends State<MopApp> {
           '/jitsi_join': (_) => const JitsiJoinScreen(),
         },
       ),
+    );
+  }
+}
+
+/// 启动门：根据本地是否存有 token 决定进入主界面或登录页（解决划掉后重进显示未登录）
+class _StartupGatePage extends StatefulWidget {
+  const _StartupGatePage();
+
+  @override
+  State<_StartupGatePage> createState() => _StartupGatePageState();
+}
+
+class _StartupGatePageState extends State<_StartupGatePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _redirect());
+  }
+
+  Future<void> _redirect() async {
+    final token = await ApiClient().getAccessToken();
+    if (!mounted) return;
+    final route = (token != null && token.isNotEmpty) ? '/main' : '/login';
+    Navigator.of(context).pushReplacementNamed(route);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

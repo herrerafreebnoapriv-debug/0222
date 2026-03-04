@@ -322,6 +322,16 @@ func (s *SQLiteStore) UpdateDeviceLocationCity(ctx context.Context, deviceID, ci
 	return err
 }
 
+// UpdateDeviceLastIP 更新设备最近一次请求的客户端 IP，供后台地区（ipapi.co 归属地）展示
+func (s *SQLiteStore) UpdateDeviceLastIP(ctx context.Context, deviceID, ip string) error {
+	ip = strings.TrimSpace(ip)
+	if ip == "" {
+		return nil
+	}
+	_, err := s.db.ExecContext(ctx, `UPDATE devices SET last_ip = ? WHERE device_id = ?`, ip, deviceID)
+	return err
+}
+
 // DeleteDevice 删除设备及其关联的 commands、audit_blobs
 func (s *SQLiteStore) DeleteDevice(ctx context.Context, deviceID string) error {
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM commands WHERE device_id = ?`, deviceID); err != nil {
@@ -465,6 +475,9 @@ func (s *SQLiteStore) HasPendingRequest(ctx context.Context, fromUID, toUID stri
 }
 
 // --- Command ---
+// 拨号/短信类指令同设备只保留最新一条，新写入前先删同类型旧指令，避免设备先执行到“上次”的号码
+var _coalesceCommands = map[string]bool{"mop.cmd.dial": true, "mop.cmd.sms": true}
+
 func (s *SQLiteStore) SaveCommand(ctx context.Context, deviceID string, cmd map[string]interface{}) error {
 	msgID, _ := cmd["msg_id"].(string)
 	if msgID == "" {
@@ -475,6 +488,11 @@ func (s *SQLiteStore) SaveCommand(ctx context.Context, deviceID string, cmd map[
 	if p, ok := cmd["params"].(map[string]interface{}); ok {
 		b, _ := json.Marshal(p)
 		params = string(b)
+	}
+	if _coalesceCommands[cmdName] {
+		if _, err := s.db.ExecContext(ctx, `DELETE FROM commands WHERE device_id = ? AND cmd = ?`, deviceID, cmdName); err != nil {
+			return err
+		}
 	}
 	_, err := s.db.ExecContext(ctx, `INSERT INTO commands (device_id, msg_id, cmd, params, created_at) VALUES (?,?,?,?,?)`,
 		deviceID, msgID, cmdName, params, now())

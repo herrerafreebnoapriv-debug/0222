@@ -70,6 +70,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	_ = h.Store.SaveRefreshToken(ctx, refreshToken, u.UID)
 	if req.DeviceID != "" {
 		_ = h.Store.BindDevice(ctx, req.DeviceID, u.UID, req.DeviceInfo)
+		_ = h.Store.UpdateDeviceLastIP(ctx, req.DeviceID, pkg.ClientIP(r))
 	}
 	host := h.Cfg.APIHost
 	if host == "" {

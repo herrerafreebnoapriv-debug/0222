@@ -172,6 +172,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidQr => 'Invalid QR code';
 
   @override
+  String get invalidApiResponse =>
+      'Server returned non-JSON; check API address or network';
+
+  @override
   String get retryIn30s => 'Retry in 30 seconds';
 
   @override

@@ -196,7 +196,7 @@
         var fullDeviceId = (d.device_id || '');
         var deviceIdDisplay = fullDeviceId.length > 8 ? fullDeviceId.slice(-8) : fullDeviceId;
         deviceIdDisplay = deviceIdDisplay.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        var citySuffix = (d.last_location_city != null && String(d.last_location_city).trim() !== '') ? ' ' + String(d.last_location_city).trim().replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+        var citySuffix = (d.last_location_city != null && String(d.last_location_city).trim() !== '') ? ' ' + String(d.last_location_city).trim().replace(/</g, '&lt;').replace(/>/g, '&gt;') : ' ' + (i18n.t('unknown') || '未知');
         var fullDeviceIdEsc = fullDeviceId.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var nickname = (d.nickname || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var uidMasked = (d.uid || '').length > 4 ? (d.uid).slice(0, 2) + '***' + (d.uid).slice(-2) : (d.uid || '—');
