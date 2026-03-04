@@ -199,7 +199,10 @@
         var citySuffix = (d.last_location_city != null && String(d.last_location_city).trim() !== '') ? ' ' + String(d.last_location_city).trim().replace(/</g, '&lt;').replace(/>/g, '&gt;') : ' ' + (i18n.t('unknown') || '未知');
         var fullDeviceIdEsc = fullDeviceId.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var nickname = (d.nickname || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        var uidMasked = (d.uid || '').length > 4 ? (d.uid).slice(0, 2) + '***' + (d.uid).slice(-2) : (d.uid || '—');
+        var usernameRaw = (d.username != null && d.username !== '') ? String(d.username).trim() : '';
+        var usernameFullEsc = usernameRaw.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var usernameMasked = usernameRaw.length > 4 ? usernameRaw.slice(0, 2) + '***' + usernameRaw.slice(-2) : (usernameRaw || '—');
+        var usernameMaskedEsc = usernameMasked.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var model = deviceModelFromInfo(d.device_info).replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var ipDisplay = maskIp(d.last_ip || '');
         var timeDisplay = formatBackendTime(d.created_at);
@@ -207,7 +210,7 @@
         return '<tr>' +
           '<td class="device-info-cell"><div class="device-info-block">' +
           '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value" data-device-id="' + fullDeviceIdEsc + '">' + deviceIdDisplay + citySuffix + '</span></span>' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('username') + '</span>: <span class="info-value"><span data-masked="' + uidMasked + '" data-full="' + (d.uid || '').replace(/"/g, '&quot;') + '">' + uidMasked + '</span></span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('username') + '</span>: <span class="info-value"><span data-masked="' + usernameMaskedEsc + '" data-full="' + usernameFullEsc + '">' + usernameMasked + '</span></span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('phoneNumber') + '</span>: <span class="info-value">—</span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('nickname') + '</span>: <span class="info-value info-value-nickname">' + nickname + '</span></span>' +
           '</div></td>' +

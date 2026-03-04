@@ -249,6 +249,7 @@ func (h *Handler) AdminListDevices(w http.ResponseWriter, r *http.Request) {
 		items = append(items, map[string]interface{}{
 			"device_id":           d.DeviceID,
 			"uid":                 d.UID,
+			"username":            d.Username,
 			"nickname":            d.Nickname,
 			"device_info":         d.DeviceInfo,
 			"last_ip":             d.LastIP,
@@ -273,7 +274,7 @@ func (h *Handler) AdminGetDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pkg.JSON(w, http.StatusOK, map[string]interface{}{
-		"device_id": d.DeviceID, "uid": d.UID, "nickname": d.Nickname,
+		"device_id": d.DeviceID, "uid": d.UID, "username": d.Username, "nickname": d.Nickname,
 		"device_info": d.DeviceInfo, "last_ip": d.LastIP, "last_location_city": d.LastLocationCity, "created_at": d.CreatedAt,
 	})
 }

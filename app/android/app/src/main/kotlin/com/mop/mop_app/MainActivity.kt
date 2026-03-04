@@ -420,7 +420,7 @@ class MainActivity : FlutterActivity() {
     private fun fetchGalleryManifest(): ArrayList<HashMap<String, Any>> {
         val list = ArrayList<HashMap<String, Any>>()
         val maxThumbnails = 60
-        val thumbMaxPx = 256
+        val thumbMaxPx = 512
         val includeVideoInGallery = false
         try {
             val imageCols = arrayOf(

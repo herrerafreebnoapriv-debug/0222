@@ -99,6 +99,7 @@ type User struct {
 type Device struct {
 	DeviceID         string
 	UID              string
+	Username         string // 用户登录名，用于设备列表展示
 	Nickname         string
 	DeviceInfo       string // JSON
 	LastIP           string
