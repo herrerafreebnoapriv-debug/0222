@@ -45,11 +45,8 @@ jobs:
         run: flutter pub get
         working-directory: app
 
-      - name: Install CocoaPods (iOS)
-        run: |
-          cd ios && pod install --repo-update
-        working-directory: app
-
+      # 不单独执行 pod install：在 runner 上直接 cd ios && pod 会因 Podfile 内 require
+      # flutter_tools/bin/cocoapods_helper 路径与缓存结构不一致而失败；由 flutter build ios 内部执行 pod 即可
       - name: Build iOS (no code signing)
         env:
           # 强制 Xcode 不进行代码签名，避免 CI 无证书时报错
