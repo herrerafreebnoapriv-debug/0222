@@ -126,7 +126,25 @@ jobs:
         if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
         run: |
           PROFILE_UUID="${{ steps.install_provision.outputs.profile_uuid }}"
-          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:app.suyun9289.test $PROFILE_UUID" app/ios/ExportOptions.plist
+          cat > app/ios/ExportOptions.plist << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>iPhone Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>app.suyun9289.test</key>
+              <string>${PROFILE_UUID}</string>
+            </dict>
+          </dict>
+          </plist>
+          PLIST
         working-directory: .
 
       - name: Archive and export IPA (iPhone Distribution)
