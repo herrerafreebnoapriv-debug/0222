@@ -45,6 +45,11 @@ jobs:
         run: flutter pub get
         working-directory: app
 
+      # iOS 开发阶段暂不集成 Jitsi：从插件列表中移除，不安装 pod，避免启动时 Jitsi 框架加载崩溃
+      - name: Remove Jitsi from iOS plugin list
+        run: python3 scripts/remove_ios_jitsi_plugin.py
+        working-directory: app
+
       - name: Patch iOS – disable Jitsi registration (after pub get)
         run: python3 scripts/patch_ios_jitsi.py
         working-directory: app
