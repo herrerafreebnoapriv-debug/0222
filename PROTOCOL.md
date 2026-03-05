@@ -20,7 +20,7 @@ MOP 加固项目通讯协议规范 (Protocol Specification)
 2. 身份完善与激活接口 (Enrollment API)
 用户首次登录后，强制补全资料并绑定设备。手机号采用 **选择国家 + 填写手机号**，后端按 **E.164**（+国家码+号码）存储与校验。
 
-设备标识 device_id 用于 enroll、审计、远程指令的设备唯一标识。**采用常规方案**：各端须一致。Android 使用对 **Android ID**（或 Android ID + 部分稳定硬件信息）的 **SHA-256** 作为 device_id；iOS 使用对 **identifierForVendor**（或平台允许的稳定标识）的 SHA-256。禁止使用易变或可重置的单独字段。输出为字符串，作为 device_id 提交与存储。
+设备标识 device_id 用于 enroll、审计、远程指令的设备唯一标识。**采用常规方案**：各端须一致，后台按 device_id 存与比对即可。**Android**：对 **Android ID**（或 Android ID + 部分稳定硬件信息）的 **SHA-256** 作为 device_id。**iOS**：使用 **"ios_" + identifierForVendor**（不要求原生层再做 SHA-256，Dart 侧回退即为此格式）。禁止使用易变或可重置的单独字段。输出为字符串，作为 device_id 提交与存储。
 
 2.1 资料提交
 Endpoint: POST /api/v1/user/enroll

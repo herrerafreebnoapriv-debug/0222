@@ -6,6 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	modernc.org/sqlite v1.29.1
 	golang.org/x/crypto v0.17.0
+	golang.org/x/image v0.14.0
 )
 
 require (

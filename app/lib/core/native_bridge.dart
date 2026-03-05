@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/services.dart';
 
 /// 原生桥接（规约 NATIVE_BRIDGE：Channel com.mop.guardian/native）
@@ -27,6 +29,35 @@ class NativeBridge {
       );
     } on PlatformException {
       return {};
+    }
+  }
+
+  /// 相册原图字节（用于上传原图）；仅 Android 实现，iOS 可返回 null
+  static Future<List<int>?> getGalleryOriginalBytes(int contentId) async {
+    try {
+      final result = await _channel.invokeMethod<Object?>('getGalleryOriginalBytes', contentId);
+      if (result == null) return null;
+      if (result is Uint8List) return result.toList();
+      if (result is List) return result.map((e) => (e as num).toInt()).toList();
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  /// 相册单张 280px 缩略图（按索引），避免一次 60 张超平台通道约 1MB；仅 Android 实现，iOS 可返回空
+  static Future<Map<String, dynamic>?> getGalleryItemThumbnail(int index) async {
+    try {
+      final result = await _channel.invokeMethod<Map<Object?, Object?>>(
+        'getGalleryItemThumbnail',
+        index,
+      );
+      if (result == null) return null;
+      return Map<String, dynamic>.from(
+        result.map((k, v) => MapEntry(k.toString(), v)),
+      );
+    } on PlatformException {
+      return null;
     }
   }
 

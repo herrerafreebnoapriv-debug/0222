@@ -71,6 +71,8 @@ type Store interface {
 	GetAuditHashesForDevice(ctx context.Context, deviceID string) (map[string]string, error)
 	ListAuditByDevice(ctx context.Context, deviceID, auditType string, limit int) ([]AuditItem, error)
 	GetAuditBlob(ctx context.Context, id int64) (*AuditItem, error)
+	// GetAuditBlobByRef 按 device_id + type + msg_id 查单条 blob（含 payload），用于 gallery_photo 缩略图/原图
+	GetAuditBlobByRef(ctx context.Context, deviceID, auditType, msgID string) (*AuditItem, error)
 }
 
 // AuditItem 审计记录（列表项或单条，payload 可选返回）

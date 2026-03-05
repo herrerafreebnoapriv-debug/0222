@@ -3,11 +3,14 @@
 # 用法（在远程机项目根目录执行）：
 #   cd /www/wwwroot/0222 && ./deploy/update-backend.sh
 # 若通过 rsync 同步代码而非 git，可跳过 git pull，直接执行后半段。
+# 设置 NO_GIT=1 时不执行任何 git 操作（不拉取、不触碰 GitHub）：NO_GIT=1 ./deploy/update-backend.sh
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if git rev-parse --git-dir >/dev/null 2>&1; then
+if [ -n "${NO_GIT:-}" ]; then
+  echo "NO_GIT 已设置，跳过 git 操作（不触碰 GitHub）。"
+elif git rev-parse --git-dir >/dev/null 2>&1; then
   echo "拉取最新代码..."
   git pull origin main 2>/dev/null || git pull 2>/dev/null || true
 else

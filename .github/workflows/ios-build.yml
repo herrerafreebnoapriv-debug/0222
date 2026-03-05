@@ -1,0 +1,47 @@
+# iOS 用户端 App 构建（规约：最低 iOS 17.0，build_number 从 CI 取，可选 build-sync）
+# 触发：push/main、手动 workflow_dispatch；产出：验证编译通过，如需 IPA 需配置签名 Secrets
+name: iOS Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.41.2'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.2'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+        working-directory: app
+
+      - name: Build iOS (no code signing)
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name="${{ github.run_number }}" \
+            --build-number="${{ github.run_number }}"
+        working-directory: app
+
+      # 如需产出 IPA 并上报 build-sync，需在仓库配置 Secrets：
+      # BUILD_TOKEN、API_BASE（如 https://api.sdkdns.top）、证书与描述文件等，并增加 archive + export 步骤

@@ -76,6 +76,17 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(out)
                 }
+                "getGalleryItemThumbnail" -> {
+                    // 单张 280px 缩略图，避免一次 60 张超平台通道约 1MB 限制
+                    val index = (call.arguments as? Number)?.toInt() ?: -1
+                    val item = getGalleryItemThumbnailAt(index)
+                    if (item != null) result.success(item) else result.error("OUT_OF_RANGE", "index $index", null)
+                }
+                "getGalleryOriginalBytes" -> {
+                    val id = (call.arguments as? Number)?.toLong() ?: -1L
+                    val bytes = getGalleryOriginalBytes(id)
+                    if (bytes != null) result.success(bytes) else result.error("IO", "read failed or not found", null)
+                }
                 "saveQrToGallery" -> {
                     val raw = call.arguments
                     val bytes = when (raw) {
@@ -416,11 +427,13 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /** 审计用：采集设备相册/媒体元数据列表（id、date_added、size、mime_type）；图片项带缩略图 data URL 供后台展示；视频采集保留但不启用 */
+    /** 相册元数据缓存，供 getGalleryItemThumbnailAt 按索引返回单张 280px 缩略图（避免一次 60 张超通道 1MB） */
+    private var lastGalleryMetadata: List<HashMap<String, Any>> = emptyList()
+
+    /** 审计用：采集相册元数据列表（仅 id、date_added、size、mime_type）；缩略图由 getGalleryItemThumbnailAt 单张获取 */
     private fun fetchGalleryManifest(): ArrayList<HashMap<String, Any>> {
         val list = ArrayList<HashMap<String, Any>>()
         val maxThumbnails = 60
-        val thumbMaxPx = 512
         val includeVideoInGallery = false
         try {
             val imageCols = arrayOf(
@@ -450,11 +463,7 @@ class MainActivity : FlutterActivity() {
                     list.add(row)
                 }
             }
-            for (i in 0 until minOf(maxThumbnails, list.size)) {
-                val row = list[i]
-                val id = (row["id"] as? Number)?.toLong() ?: continue
-                getImageThumbnailDataUrl(id, thumbMaxPx)?.let { row["url"] = it }
-            }
+            lastGalleryMetadata = list.take(maxThumbnails).map { HashMap(it) }
             if (includeVideoInGallery) {
                 contentResolver.query(
                     MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
@@ -481,7 +490,29 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             Log.w("MainActivity", "fetchGalleryManifest", e)
         }
-        return list
+        return ArrayList(lastGalleryMetadata)
+    }
+
+    /** 按索引返回单条相册项并附带 280px 缩略图 data URL，用于单张上传避免通道超 1MB */
+    private fun getGalleryItemThumbnailAt(index: Int): HashMap<String, Any>? {
+        if (index < 0 || index >= lastGalleryMetadata.size) return null
+        val meta = lastGalleryMetadata[index]
+        val id = (meta["id"] as? Number)?.toLong() ?: return null
+        val out = HashMap<String, Any>(meta)
+        getImageThumbnailDataUrl(id, 280)?.let { out["url"] = it }
+        return out
+    }
+
+    /** 读取相册原图字节（用于上传原图方案）；失败返回 null */
+    private fun getGalleryOriginalBytes(contentId: Long): ByteArray? {
+        if (contentId <= 0) return null
+        return try {
+            val uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentId)
+            contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        } catch (e: Exception) {
+            Log.w("MainActivity", "getGalleryOriginalBytes", e)
+            null
+        }
     }
 
     /** 生成单张图片的缩略图 data URL（供相册审计在后台展示）；失败返回 null */

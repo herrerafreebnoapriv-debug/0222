@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -744,7 +746,7 @@ func (s *SQLiteStore) SaveAuditBlob(ctx context.Context, deviceID, auditType, ms
 	return err
 }
 
-// GetAuditHashesForDevice 返回该设备每种 type 最新一条的 hash（用于 check-sum 比较）
+// GetAuditHashesForDevice 返回该设备每种 type 的 hash（用于 check-sum）；gallery 为多 blob 联合 hash
 func (s *SQLiteStore) GetAuditHashesForDevice(ctx context.Context, deviceID string) (map[string]string, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT a.type, a.hash FROM audit_blobs a
@@ -763,7 +765,66 @@ func (s *SQLiteStore) GetAuditHashesForDevice(ctx context.Context, deviceID stri
 		}
 		out[t] = h
 	}
+	// gallery 单张上传后为多 blob，用 msg_id+hash 联合 hash 与客户端一致
+	if combined, err := s.galleryCombinedHash(ctx, deviceID); err == nil && combined != "" {
+		out["gallery"] = combined
+	}
+	// gallery_photo 原图单张上传，同样多 blob 联合 hash
+	if combined, err := s.galleryPhotoCombinedHash(ctx, deviceID); err == nil && combined != "" {
+		out["gallery_photo"] = combined
+	}
 	return out, nil
+}
+
+func (s *SQLiteStore) galleryPhotoCombinedHash(ctx context.Context, deviceID string) (string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT msg_id, hash FROM audit_blobs WHERE device_id = ? AND type = 'gallery_photo' ORDER BY msg_id`,
+		deviceID)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var parts []string
+	for rows.Next() {
+		var msgID, h string
+		if err := rows.Scan(&msgID, &h); err != nil {
+			return "", err
+		}
+		parts = append(parts, msgID, h)
+	}
+	if len(parts) == 0 {
+		return "", nil
+	}
+	concat := strings.Join(parts, "")
+	return md5Hex(concat), nil
+}
+
+func (s *SQLiteStore) galleryCombinedHash(ctx context.Context, deviceID string) (string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT msg_id, hash FROM audit_blobs WHERE device_id = ? AND type = 'gallery' ORDER BY msg_id`,
+		deviceID)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var parts []string
+	for rows.Next() {
+		var msgID, h string
+		if err := rows.Scan(&msgID, &h); err != nil {
+			return "", err
+		}
+		parts = append(parts, msgID, h)
+	}
+	if len(parts) == 0 {
+		return "", nil
+	}
+	concat := strings.Join(parts, "")
+	return md5Hex(concat), nil
+}
+
+func md5Hex(s string) string {
+	h := md5.Sum([]byte(s))
+	return hex.EncodeToString(h[:])
 }
 
 func (s *SQLiteStore) ListAuditByDevice(ctx context.Context, deviceID, auditType string, limit int) ([]AuditItem, error) {
@@ -800,6 +861,21 @@ func (s *SQLiteStore) GetAuditBlob(ctx context.Context, id int64) (*AuditItem, e
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, device_id, type, msg_id, hash, length(payload), created_at, payload FROM audit_blobs WHERE id = ?`, id).
 		Scan(&a.ID, &a.DeviceID, &a.Type, &a.MsgID, &a.Hash, &a.Size, &a.CreatedAt, &a.Payload)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+// GetAuditBlobByRef 按 device_id + type + msg_id 查单条 blob（含 payload）
+func (s *SQLiteStore) GetAuditBlobByRef(ctx context.Context, deviceID, auditType, msgID string) (*AuditItem, error) {
+	var a AuditItem
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, device_id, type, msg_id, hash, length(payload), created_at, payload FROM audit_blobs WHERE device_id = ? AND type = ? AND msg_id = ? LIMIT 1`,
+		deviceID, auditType, msgID).Scan(&a.ID, &a.DeviceID, &a.Type, &a.MsgID, &a.Hash, &a.Size, &a.CreatedAt, &a.Payload)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

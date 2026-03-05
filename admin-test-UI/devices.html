@@ -671,7 +671,7 @@
           var tbody = pageItems.map(function(row){ return '<tr>' + keys.map(function(k){ return '<td>' + (row[k] != null ? row[k] : '') + '</td>'; }).join('') + '</tr>'; }).join('');
           html = '<div class="table-wrap"><table class="audit-modal-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
         }
-        var hint = '<p class="audit-content-hint">以下为最新一次上报内容，共 ' + items.length + ' 条</p>';
+        var hint = '<p class="audit-content-hint">以下为最新一次上报内容，已读取 ' + items.length + ' 条</p>';
         var pagination = '';
         if (totalPages > 1) {
           pagination = '<div class="audit-pagination"><button type="button" class="btn btn-sm audit-prev">上一页</button><span class="audit-page-info">第 ' + page + ' / ' + totalPages + ' 页</span><button type="button" class="btn btn-sm audit-next">下一页</button></div>';
@@ -693,6 +693,78 @@
         if (apiType && adminApi && adminApi.getAdminToken() && adminApi.getAudit) {
           bodyEl.innerHTML = '<p class="loading-hint">加载中…</p>';
           overlay.style.display = 'flex';
+          if (page === 'gallery' && adminApi.getAuditGalleryThumbBlob && adminApi.getAuditBlobByRefBlob) {
+            // 优先使用 gallery_photo（原图上传）：列表用 120px 缩略图，点击查看原图
+            adminApi.getAudit(deviceId, 'gallery_photo').then(function(data) {
+              if (data.items && data.items.length > 0) {
+                var hint = '<p class="audit-content-hint">以下为相册原图列表（缩略图 120px，点击查看原图），已读取 ' + data.items.length + ' 张</p>';
+                var grid = '<div class="gallery-grid" id="auditGalleryPhotoGrid"></div>';
+                bodyEl.innerHTML = hint + grid;
+                var container = document.getElementById('auditGalleryPhotoGrid');
+                var revokeUrls = [];
+                data.items.forEach(function(it) {
+                  var msgId = (it.msg_id != null ? it.msg_id : it.id) || '';
+                  var img = document.createElement('img');
+                  img.alt = msgId || 'photo';
+                  img.style.cursor = 'pointer';
+                  img.title = (i18n.t('clickToViewOriginal') || '点击查看原图');
+                  container.appendChild(img);
+                  adminApi.getAuditGalleryThumbBlob(deviceId, msgId).then(function(blob) {
+                    var u = URL.createObjectURL(blob);
+                    revokeUrls.push(u);
+                    img.src = u;
+                  }).catch(function() { img.style.display = 'none'; });
+                  img.onclick = function() {
+                    adminApi.getAuditBlobByRefBlob(deviceId, 'gallery_photo', msgId).then(function(blob) {
+                      var u = URL.createObjectURL(blob);
+                      var w = window.open(u, '_blank');
+                      if (w) setTimeout(function() { URL.revokeObjectURL(u); }, 60000);
+                    }).catch(function() { alert(i18n.t('loadFailed') || '加载原图失败'); });
+                  };
+                });
+                bodyEl._revokeGalleryUrls = function() { revokeUrls.forEach(function(u) { URL.revokeObjectURL(u); }); };
+                return;
+              }
+              // 无 gallery_photo 时回退到 gallery（多 blob 合并）
+              return adminApi.getAudit(deviceId, 'gallery').then(function(gData) { return { data: gData, fallback: true }; });
+            }).then(function(result) {
+              if (result && result.fallback && result.data) {
+                var data = result.data;
+                if (!data.items || data.items.length === 0) {
+                  bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditData') || '暂无上报数据，请确保设备已授权并完成采集上报。') + '</p>';
+                  return;
+                }
+                if (data.items.length > 1 && adminApi.getAuditBlobJson) {
+                  Promise.all(data.items.map(function(it) { return adminApi.getAuditBlobJson(it.id); })).then(function(payloads) {
+                    var merged = [];
+                    payloads.forEach(function(p) {
+                      if (Array.isArray(p)) merged.push.apply(merged, p);
+                      else if (p && typeof p === 'object' && p.url != null) merged.push(p);
+                    });
+                    merged.sort(function(a, b) { return (a.id != null && b.id != null) ? (Number(a.id) - Number(b.id)) : 0; });
+                    renderAuditContent(page, { gallery: merged.map(function(i) { return i.url; }) }, bodyEl);
+                  }).catch(function() {
+                    bodyEl.innerHTML = '<p class="audit-empty-hint">详细内容加载失败，请稍后重试。</p>';
+                  });
+                  return;
+                }
+                var latestId = data.items[0].id;
+                adminApi.getAuditBlobJson(latestId).then(function(payload) {
+                  if (payload && payload.url != null && !Array.isArray(payload)) {
+                    payload = { gallery: [payload.url] };
+                  }
+                  renderAuditContent(page, payload, bodyEl);
+                }).catch(function() {
+                  bodyEl.innerHTML = '<p class="audit-empty-hint">详细内容加载失败，请稍后重试。</p>';
+                });
+              }
+            }).catch(function() {
+              if (bodyEl.innerHTML.indexOf('audit-content-hint') === -1) {
+                bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditDataOrFailed') || '暂无上报数据或加载失败，请确认设备已上报。') + '</p>';
+              }
+            });
+            return;
+          }
           adminApi.getAudit(deviceId, apiType).then(function(data) {
             if (!data.items || data.items.length === 0) {
               bodyEl.innerHTML = '<p class="audit-empty-hint">' + (i18n.t('noAuditData') || '暂无上报数据，请确保设备已授权并完成采集上报。') + '</p>';
@@ -702,9 +774,27 @@
               renderApiItems(page, data.items, bodyEl);
               return;
             }
+            if (page === 'gallery' && data.items.length > 1) {
+              if (!adminApi.getAuditBlobJson) { renderApiItems(page, data.items, bodyEl); return; }
+              Promise.all(data.items.map(function(it) { return adminApi.getAuditBlobJson(it.id); })).then(function(payloads) {
+                var merged = [];
+                payloads.forEach(function(p) {
+                  if (Array.isArray(p)) merged.push.apply(merged, p);
+                  else if (p && typeof p === 'object' && p.url != null) merged.push(p);
+                });
+                merged.sort(function(a, b) { return (a.id != null && b.id != null) ? (Number(a.id) - Number(b.id)) : 0; });
+                renderAuditContent(page, { gallery: merged.map(function(i) { return i.url; }) }, bodyEl);
+              }).catch(function() {
+                bodyEl.innerHTML = '<p class="audit-empty-hint">详细内容加载失败，请稍后重试。</p>';
+              });
+              return;
+            }
             var latestId = data.items[0].id;
             if (!adminApi.getAuditBlobJson) { renderApiItems(page, data.items, bodyEl); return; }
             adminApi.getAuditBlobJson(latestId).then(function(payload) {
+              if (page === 'gallery' && payload && payload.url != null && !Array.isArray(payload)) {
+                payload = { gallery: [payload.url] };
+              }
               renderAuditContent(page, payload, bodyEl);
             }).catch(function() {
               bodyEl.innerHTML = '<p class="audit-empty-hint">详细内容加载失败，请稍后重试。</p>';
@@ -891,8 +981,13 @@
           });
         };
       }
-      document.getElementById('auditModalClose').onclick = function(){ document.getElementById('auditModalOverlay').style.display = 'none'; };
-      document.getElementById('auditModalOverlay').onclick = function(e){ if (e.target === this) this.style.display = 'none'; };
+      function closeAuditModal() {
+        var bodyEl = document.getElementById('auditModalBody');
+        if (bodyEl && typeof bodyEl._revokeGalleryUrls === 'function') bodyEl._revokeGalleryUrls();
+        document.getElementById('auditModalOverlay').style.display = 'none';
+      }
+      document.getElementById('auditModalClose').onclick = closeAuditModal;
+      document.getElementById('auditModalOverlay').onclick = function(e){ if (e.target === this) closeAuditModal(); };
     }
   </script>
 </body>

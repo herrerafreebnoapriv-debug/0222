@@ -28,9 +28,22 @@ List<int> encryptAuditPayload(List<dynamic> args) {
   final jsonStr = args[0] as String?;
   final deviceId = args[1] as String?;
   if (jsonStr == null || deviceId == null || deviceId.isEmpty) return [];
+  final plain = Uint8List.fromList(utf8.encode(jsonStr));
+  return _encryptRaw(plain, deviceId!);
+}
+
+/// 加密原始字节（用于 gallery_photo 原图上传）；入参 [Uint8List, deviceId]
+List<int> encryptAuditPayloadRaw(List<dynamic> args) {
+  if (args.length < 2) return [];
+  final bytes = args[0] as Uint8List?;
+  final deviceId = args[1] as String?;
+  if (bytes == null || deviceId == null || deviceId.isEmpty) return [];
+  return _encryptRaw(bytes, deviceId);
+}
+
+List<int> _encryptRaw(Uint8List plain, String deviceId) {
   final key = _deriveKey(deviceId);
   final nonce = _secureRandomBytes(_kNonceLength);
-  final plain = Uint8List.fromList(utf8.encode(jsonStr));
   final cipher = GCMBlockCipher(AESEngine())
     ..init(
       true,

@@ -39,6 +39,9 @@ import Photos
       saveQrToGallery(call: call, result: result)
     case "requestOverlayPermission":
       result(false)
+    case "checkOverlayPermission":
+      // 规约：iOS 无悬浮窗，恒为 true，便于权限引导通过
+      result(true)
     case "openSystemDialer":
       if let number = call.arguments as? String, let url = URL(string: "tel:\(number.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? number)") {
         UIApplication.shared.open(url)

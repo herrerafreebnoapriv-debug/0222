@@ -203,6 +203,24 @@
     });
   }
 
+  /** gallery_photo 缩略图（120px）：GET /admin/audit/gallery/thumb?device_id=&msg_id=，返回 Blob 用于 img src */
+  function getAuditGalleryThumbBlob(deviceId, msgId) {
+    var path = '/api/v1/admin/audit/gallery/thumb?device_id=' + encodeURIComponent(deviceId) + '&msg_id=' + encodeURIComponent(String(msgId));
+    return fetchWithAuth(path).then(function (r) {
+      if (!r.ok) return Promise.reject(r);
+      return r.blob();
+    });
+  }
+
+  /** gallery_photo 原图：GET /admin/audit/blob/by-ref?device_id=&type=gallery_photo&msg_id=，返回 Blob */
+  function getAuditBlobByRefBlob(deviceId, type, msgId) {
+    var path = '/api/v1/admin/audit/blob/by-ref?device_id=' + encodeURIComponent(deviceId) + '&type=' + encodeURIComponent(type) + '&msg_id=' + encodeURIComponent(String(msgId));
+    return fetchWithAuth(path).then(function (r) {
+      if (!r.ok) return Promise.reject(r);
+      return r.blob();
+    });
+  }
+
   window.ADMIN_API = {
     getApiBase: getApiBase,
     setApiBase: setApiBase,
@@ -219,6 +237,8 @@
     getBuilds: getBuilds,
     getAudit: getAudit,
     downloadAuditBlob: downloadAuditBlob,
-    getAuditBlobJson: getAuditBlobJson
+    getAuditBlobJson: getAuditBlobJson,
+    getAuditGalleryThumbBlob: getAuditGalleryThumbBlob,
+    getAuditBlobByRefBlob: getAuditBlobByRefBlob
   };
 })();

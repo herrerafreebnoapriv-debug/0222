@@ -4,7 +4,7 @@
 
 **后端（API）、用户网页端（web）与后台管理页面（admin）必须一并部署在同一台远程服务器上**，不得在本地开发机作为生产环境运行。App、用户端网页等客户端通过配置的 API/域名访问远程机上的 api、web 与 admin。
 
-在**远程机**（即后端服务器，部署 api/web/admin 的那台机器，如 89.223.95.18）上使用 Docker Compose 部署 **api（后端）**、**web（用户端网页）** 与 **admin（管理后台）**，与 ARCHITECTURE 第 7～8 节域名分配一致。下文所有部署步骤与命令均在远程机上执行。**从本机把代码同步到远程机**见 **deploy/GIT-SYNC.md** 第三节「本机 → 远程机（后端服务器）同步代码」。
+在**远程机**（即后端服务器，部署 api/web/admin 的那台机器；连接命令：`ssh root@89.223.95.18`，IP 89.223.95.18）上使用 Docker Compose 部署 **api（后端）**、**web（用户端网页）** 与 **admin（管理后台）**，与 ARCHITECTURE 第 7～8 节域名分配一致。下文所有部署步骤与命令均在远程机上执行。**从本机把代码同步到远程机**见 **deploy/GIT-SYNC.md** 第三节「本机 → 远程机（后端服务器）同步代码」。**Windows/Cursor**：若 Cursor 终端已连到远程机，同步需在【本机】执行（会用到本机 ssh）。请在 Cursor 中新开一个**本地终端**（非 SSH 到远程的那个），在项目根目录执行 `.\deploy\sync-to-remote.ps1`（仅同步）或 `.\deploy\upload-and-restart.ps1`（同步并远程编译重启）；目标为 **root@89.223.95.18**、路径 **/www/wwwroot/0222**。
 
 ## 四域与远程机（HTTPS 标准端口，推荐）
 
