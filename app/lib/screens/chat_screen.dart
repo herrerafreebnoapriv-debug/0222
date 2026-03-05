@@ -136,13 +136,20 @@ class _ChatScreenState extends State<ChatScreen> {
                   _showRemarkDialog(l10n);
                   break;
                 case 'voice_video':
-                  Navigator.of(context).pushNamed(
-                    '/jitsi_join',
-                    arguments: {
-                      'peerNickname': _peerNickname,
-                      'peerUid': ChatScreen.getArgs(context)?['peerUid'] ?? '',
-                    },
-                  );
+                  // iOS 暂不启用 Jitsi，下阶段再开放
+                  if (Theme.of(context).platform == TargetPlatform.iOS) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.voiceVideoIosDisabled)),
+                    );
+                  } else {
+                    Navigator.of(context).pushNamed(
+                      '/jitsi_join',
+                      arguments: {
+                        'peerNickname': _peerNickname,
+                        'peerUid': ChatScreen.getArgs(context)?['peerUid'] ?? '',
+                      },
+                    );
+                  }
                   break;
                 case 'screen_share':
                   ScaffoldMessenger.of(context).showSnackBar(

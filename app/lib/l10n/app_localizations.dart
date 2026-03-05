@@ -566,6 +566,12 @@ abstract class AppLocalizations {
   /// **'音视频'**
   String get voiceVideo;
 
+  /// No description provided for @voiceVideoIosDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'音视频/会议功能下阶段在 iOS 开放'**
+  String get voiceVideoIosDisabled;
+
   /// No description provided for @nearbyButton.
   ///
   /// In zh, this message translates to:

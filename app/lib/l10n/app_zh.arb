@@ -79,6 +79,7 @@
   "send": "发送",
   "setRemark": "设置备注",
   "voiceVideo": "音视频",
+  "voiceVideoIosDisabled": "音视频/会议功能下阶段在 iOS 开放",
   "nearbyButton": "附近",
   "locationReportSuccess": "已上报所在市",
   "locationReportFail": "上报失败",

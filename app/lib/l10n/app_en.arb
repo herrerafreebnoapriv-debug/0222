@@ -79,6 +79,7 @@
   "send": "Send",
   "setRemark": "Set remark",
   "voiceVideo": "Voice & video",
+  "voiceVideoIosDisabled": "Voice/video coming in a later release on iOS",
   "nearbyButton": "Nearby",
   "locationReportSuccess": "City reported",
   "locationReportFail": "Report failed",

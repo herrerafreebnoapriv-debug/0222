@@ -245,6 +245,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceVideo => '音视频';
 
   @override
+  String get voiceVideoIosDisabled => '音视频/会议功能下阶段在 iOS 开放';
+
+  @override
   String get nearbyButton => '附近';
 
   @override

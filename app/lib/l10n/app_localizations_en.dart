@@ -248,6 +248,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceVideo => 'Voice & video';
 
   @override
+  String get voiceVideoIosDisabled => 'Voice/video coming in a later release on iOS';
+
+  @override
   String get nearbyButton => 'Nearby';
 
   @override

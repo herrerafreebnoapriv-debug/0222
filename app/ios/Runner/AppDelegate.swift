@@ -10,6 +10,8 @@ import Photos
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // 兼容 release/Ad-hoc IPA：在隐式引擎未就绪时也注册插件，避免安装后启动闪退（GeneratedPluginRegistrant 未注册）
+    GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
