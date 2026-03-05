@@ -11,7 +11,8 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: '3.41.2'
+  # 使用已发布的 stable 版本，避免 runner 上无此 tag 导致失败
+  FLUTTER_VERSION: '3.41.0'
 
 jobs:
   build:
@@ -32,13 +33,32 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Flutter doctor (diagnostics)
+        run: flutter doctor -v
+        working-directory: app
+
+      - name: Precache iOS artifacts
+        run: flutter precache --ios
+        working-directory: app
+
       - name: Get dependencies
         run: flutter pub get
         working-directory: app
 
-      - name: Build iOS (no code signing)
+      - name: Install CocoaPods (iOS)
         run: |
-          flutter build ios --release --no-codesign \
+          cd ios && pod install --repo-update
+        working-directory: app
+
+      - name: Build iOS (no code signing)
+        env:
+          # 强制 Xcode 不进行代码签名，避免 CI 无证书时报错
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGNING_REQUIRED: "NO"
+          CODE_SIGNING_ALLOWED: "NO"
+          EXPANDED_CODE_SIGN_IDENTITY: "-"
+        run: |
+          flutter build ios --release --no-codesign -v \
             --build-name="${{ github.run_number }}" \
             --build-number="${{ github.run_number }}"
         working-directory: app

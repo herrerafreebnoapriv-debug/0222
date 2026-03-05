@@ -1,6 +1,8 @@
 # 证书与私钥勿提交
 *.pem
 deploy/certs/*.pem
+# iOS 测试证书与密码（app/zhengshu/）勿提交
+app/zhengshu/
 # Let's Encrypt ACME 校验临时文件不提交
 deploy/certbot-webroot/
 
@@ -22,3 +24,7 @@ node_modules/
 *.log
 # APK 等构建产物不提交（超过 GitHub 单文件限制）
 dist/
+
+# 本机/远程比对生成的清单（可随时再生）
+deploy/local-list.txt
+deploy/remote-list.txt
