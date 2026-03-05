@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
 
-/// iOS Mini 版占位：不依赖 Jitsi，仅提示“暂不支持音视频”
+/// iOS Mini 占位：不依赖 Jitsi，仅提示暂不支持音视频（与 app 路由/类名一致）
 class JitsiJoinScreen extends StatelessWidget {
   const JitsiJoinScreen({super.key});
 
@@ -16,7 +16,7 @@ class JitsiJoinScreen extends StatelessWidget {
           child: Text(
             l10n.voiceVideoIosDisabled,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),
       ),
