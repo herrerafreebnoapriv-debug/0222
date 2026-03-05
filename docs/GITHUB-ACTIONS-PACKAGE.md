@@ -7,7 +7,7 @@
 ```bash
 git add .
 git status
-git commit -m "chore: iOS 17.0、checkOverlayPermission、Podfile、iOS workflow 与 device_id 约定"
+git commit -m "chore: iOS 16.0、checkOverlayPermission、Podfile、iOS workflow 与 device_id 约定"
 git push origin main
 ```
 

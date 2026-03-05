@@ -68,7 +68,7 @@
 
 - **本机（Windows）**：编写与调试 **Dart/Flutter 及 iOS 平台代码**，无需在本机安装 Xcode 或 macOS。  
 - **构建与签名**：在仓库中配置 **GitHub Actions workflow**（macOS 环境、Xcode、CocoaPods、`flutter build ios` 或 Xcode 归档），推送后由 GitHub 自动或手动触发构建；签名证书与描述文件通过 GitHub Secrets 配置（与 mop 项目一致）。  
-- **规约**：iOS 最低版本 **iOS 17.0**，workflow 中需指定对应 Xcode 与部署目标。
+- **规约**：iOS 最低版本 **iOS 16.0**（含 16.7.1），workflow 中需指定对应 Xcode 与部署目标。
 
 **实现时**：在仓库 `.github/workflows/` 下新增或复用 **iOS 构建 workflow**（参考此前 mop 项目的 CI 配置），确保 Flutter 版本、CocoaPods、证书与 Secrets 与 mop 实践一致。
 

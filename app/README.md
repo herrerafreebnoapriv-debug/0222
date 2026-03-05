@@ -13,7 +13,7 @@
 - **邀请**：`ApiClient.inviteGenerate()`、`inviteValidate(code)`（规约 PROTOCOL 2.3）；enroll 已支持选填 invite_code。
 - **API 与存储**：`ApiClient`（Host、login、enroll、invite/generate、invite/validate）、`flutter_secure_storage` 存 token/uid/host；设备信息占位见 `DeviceInfoService`，正式由 NATIVE_BRIDGE 提供 device_id。
 - **i18n**：中英双语（lib/l10n/*.arb），跟随系统语言，支持切换并持久化（后续接入）。
-- **最低版本**：Android API 29 / iOS 17。
+- **最低版本**：Android API 29 / iOS 16.0（含 16.7.1）。
 
 ## 运行
 

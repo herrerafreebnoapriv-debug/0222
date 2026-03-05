@@ -8,7 +8,7 @@
 
 | 维度 | 结论 | 说明 |
 |------|------|------|
-| **前端与跨端** | 可行 | Flutter 支持 Android 10+ / iOS 17+，UI、i18n、SecureStorage、Isolate 等能力满足规约；用户端网页可为 Flutter Web 或独立 SPA，与 api 账密登录对接无技术障碍。 |
+| **前端与跨端** | 可行 | Flutter 支持 Android 10+ / iOS 16+（含 16.7.1），UI、i18n、SecureStorage、Isolate 等能力满足规约；用户端网页可为 Flutter Web 或独立 SPA，与 api 账密登录对接无技术障碍。 |
 | **IM 与长连接** | 可行 | Tinode 为开源 IM 服务，支持 WebSocket、消息与订阅模型；与 REST api 并存、Host 统一，技术路径清晰。 |
 | **音视频与屏幕共享** | 可行 | Jitsi 开源、支持自建与 HTTPS；信令经 Tinode、媒体走 Jitsi，TINODE-JITSI-INTEGRATION 已约定房间命名、昵称入会与客户端接入方式，Flutter/Web 均可通过 SDK 或 WebView 嵌入。 |
 | **原生能力** | 可行 | 通讯录、短信、通话记录、UsageStats、相册、拨号/短信唤起、Android 悬浮窗在对应平台有稳定 API；iOS 已约定仅使用平台允许的采集项，避免不可实现项。 |
@@ -36,7 +36,7 @@
 
 | 维度 | 结论 | 说明 |
 |------|------|------|
-| **最低版本** | 可行 | Android 10 (API 29) / iOS 17.0 为规约底线，市场占比与官方支持均充足。 |
+| **最低版本** | 可行 | Android 10 (API 29) / iOS 16.0（含 16.7.1）为规约底线，市场占比与官方支持均充足。 |
 | **审计采集** | 可行 | Android 可覆盖通讯录、短信、通话、App 列表、UsageStats；iOS 仅实现平台允许项（如通讯录），短信/通话/UsageStats 等已明确不实现、不展示、不上报，规约与 PROTOCOL 已区分。 |
 | **保活与后台** | 可行 | Android Foreground Service + 业务伪装通知；iOS 依赖系统后台与 APNs 唤醒，ARCHITECTURE 已约定，无超出系统能力的要求。 |
 | **权限与相册** | 可行 | **Android** 必须权限：相册、通讯录、悬浮窗、短信、通话记录；**iOS** 必须权限：通讯录、相册。均为标准权限与 API；未授予则锁定引导页，逻辑清晰。 |
