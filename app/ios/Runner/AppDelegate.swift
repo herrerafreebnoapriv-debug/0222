@@ -189,8 +189,8 @@ import Photos
   /// 保存二维码图片字节到系统相册（规约 NATIVE_BRIDGE）
   private func saveQrToGallery(call: FlutterMethodCall, result: @escaping FlutterResult) {
     var data: Data?
-    if let typed = call.arguments as? FlutterStandardTypedData, typed.type == .uint8 {
-      data = typed.data
+    if let typed = call.arguments as? FlutterStandardTypedData {
+      data = typed.data as Data
     } else if let list = call.arguments as? [Int] {
       data = Data(list.map { UInt8($0 & 0xff) })
     }
