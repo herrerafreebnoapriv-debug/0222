@@ -96,9 +96,12 @@ jobs:
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > /tmp/profile.mobileprovision
-          UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
+          PLIST=$(security cms -D -i /tmp/profile.mobileprovision)
+          UUID=$(echo "$PLIST" | plutil -extract UUID raw -)
+          TEAM_ID=$(echo "$PLIST" | plutil -extract TeamIdentifier.0 raw - 2>/dev/null || echo "$PLIST" | plutil -extract TeamIdentifier raw - 2>/dev/null)
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID.mobileprovision"
           echo "profile_uuid=$UUID" >> $GITHUB_OUTPUT
+          echo "team_id=$TEAM_ID" >> $GITHUB_OUTPUT
 
       - name: Write ExportOptions.plist from secret
         if: steps.ipa_secrets.outputs.has_export_options == 'true'
@@ -151,12 +154,14 @@ jobs:
         if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
         env:
           PROFILE_UUID: ${{ steps.install_provision.outputs.profile_uuid }}
+          DEVELOPMENT_TEAM: ${{ steps.install_provision.outputs.team_id }}
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
             -archivePath build/ios/Runner.xcarchive \
             archive \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID"
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
           xcodebuild -exportArchive \
             -archivePath build/ios/Runner.xcarchive \
             -exportPath build/ios/ipa \
