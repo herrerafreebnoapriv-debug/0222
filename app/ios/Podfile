@@ -22,7 +22,8 @@ def flutter_root
   raise "Flutter SDK not found. Run flutter pub get in the application directory."
 end
 
-require File.expand_path(File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'cocoapods_helper'), __FILE__)
+# Flutter 官方仓库中文件名为 podhelper.rb（cocoapods_helper 在 hostedtoolcache 中不存在会导致 CI 失败）
+require File.expand_path(File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper'), __FILE__)
 
 target 'Runner' do
   use_frameworks!
