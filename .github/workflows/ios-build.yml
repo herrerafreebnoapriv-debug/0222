@@ -150,18 +150,24 @@ jobs:
           PLIST
         working-directory: .
 
+      # 仅对 Runner 目标设置描述文件与开发团队，避免 Pods 报 "does not support provisioning profiles"
+      - name: Set Runner-only code signing in project
+        if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
+        run: |
+          python3 app/ios/scripts/set_runner_signing.py \
+            app/ios/Runner.xcodeproj/project.pbxproj \
+            "${{ steps.install_provision.outputs.team_id }}" \
+            "${{ steps.install_provision.outputs.profile_uuid }}"
+        working-directory: .
+
       - name: Archive and export IPA (iPhone Distribution)
         if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
-        env:
-          PROFILE_UUID: ${{ steps.install_provision.outputs.profile_uuid }}
-          DEVELOPMENT_TEAM: ${{ steps.install_provision.outputs.team_id }}
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -destination "generic/platform=iOS" \
             -archivePath build/ios/Runner.xcarchive \
             archive \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
+            CODE_SIGN_IDENTITY="iPhone Distribution"
           xcodebuild -exportArchive \
             -archivePath build/ios/Runner.xcarchive \
             -exportPath build/ios/ipa \
