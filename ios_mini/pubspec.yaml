@@ -1,6 +1,7 @@
-# iOS Mini 用户端：与 app 同源，但不依赖 Jitsi，专用于打无 Jitsi 的 iOS 包，避免启动崩溃。
+# iOS Mini 用户端：与 app 功能一致，但不依赖 Jitsi，从依赖层面彻底避免 iOS 启动崩溃。
+# 单独构建 IPA 用于 iOS 分发。版本号与 app 对齐，build 由 CI 提供。
 name: mop_app
-description: "MOP iOS Mini - 无 Jitsi 的 iOS 用户端构建"
+description: "MOP iOS Mini - no Jitsi dependency."
 publish_to: 'none'
 
 version: 1.0.6+7
@@ -28,7 +29,7 @@ dependencies:
   permission_handler: ^11.3.1
   geolocator: ^13.0.2
   geocoding: ^3.0.0
-  #  intentionally no jitsi_meet_flutter_sdk - iOS Mini 不集成 Jitsi
+  # 无 jitsi_meet_flutter_sdk，iOS Mini 仅 IM/设置等，音视频入口显示“下阶段开放”
 
 dev_dependencies:
   flutter_test:
@@ -42,8 +43,8 @@ flutter:
   assets:
     - assets/images/
 
-flutter_launcher_icons:
-  android: false
-  ios: true
-  image_path: "assets/images/app_icon.png"
-  min_sdk_android: 21
+# 无 app_icon.png 时使用 Flutter 默认图标；需要图标时可从 app/assets/images 复制后取消注释并执行 flutter pub run flutter_launcher_icons
+# flutter_launcher_icons:
+#   android: false
+#   ios: true
+#   image_path: "assets/images/app_icon.png"

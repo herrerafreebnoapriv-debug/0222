@@ -1,5 +1,4 @@
-# iOS Mini 用户端：无 Jitsi 的精简版 iOS 构建（方案 2：从依赖上不包含 Jitsi）
-# 触发：push/main 且变更 ios_mini/** 或本 workflow；手动 workflow_dispatch
+# iOS Mini 用户端：无 Jitsi 依赖，单独产出 IPA。触发：push/main（ios_mini/**）、手动
 name: iOS Mini Build
 
 on:
@@ -32,11 +31,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Flutter doctor (diagnostics)
+      - name: Flutter doctor
         run: flutter doctor -v
         working-directory: ios_mini
 
-      - name: Precache iOS artifacts
+      - name: Precache iOS
         run: flutter precache --ios
         working-directory: ios_mini
 
@@ -68,7 +67,6 @@ jobs:
             --build-number="${{ github.run_number }}"
         working-directory: ios_mini
 
-      # ========== 以下步骤仅在配置签名 Secrets 时执行，产出 IPA ==========
       - name: Create keychain and import certificate
         if: steps.ipa_secrets.outputs.has_cert == 'true'
         env:

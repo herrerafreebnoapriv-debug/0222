@@ -1,26 +1,22 @@
-# iOS Mini 用户端
+# MOP iOS Mini
 
-与主工程 `app` 同源的 **精简版 iOS 构建**，从依赖上不包含 Jitsi，用于产出无 Jitsi 的 IPA，避免 iOS 启动崩溃。
+与主工程 `app` 功能一致的 **iOS 专用** 用户端，从依赖上**不包含 Jitsi**，避免 Jitsi 框架在 iOS 上的启动崩溃。
 
 ## 与 app 的区别
 
-- **pubspec**：不依赖 `jitsi_meet_flutter_sdk`，因此 iOS 不会安装/链接 Jitsi 相关 pod。
-- **lib**：与 app 共享逻辑；`lib/screens/jitsi_join_screen.dart` 为占位页（iOS 暂不支持音视频），不引用 Jitsi SDK。
-- **构建**：仅用于 iOS，不构建 Android。
+- **pubspec**：无 `jitsi_meet_flutter_sdk` 依赖。
+- **音视频入口**：`/jitsi_join` 路由仍存在，但页面为占位，提示“音视频/会议功能下阶段在 iOS 开放”。
+- **构建产物**：仅产出 iOS IPA，无 Android 构建。
 
 ## 本地构建
 
 ```bash
 cd ios_mini
 flutter pub get
-flutter build ios --release --no-codesign
-# 或带签名：按需配置 Xcode 后 archive / export
+flutter build ios --release --no-codesign --build-name=1.0.0 --build-number=1
+# 签名与归档见 .github/workflows/ios-mini-build.yml
 ```
 
 ## CI
 
-由 `.github/workflows/ios-mini-build.yml` 在 push 到 `main` 且变更涉及 `ios_mini/**` 时触发，产出 artifact `ios-mini-ipa-${{ run_number }}`。
-
-## 同步主工程
-
-若 `app` 的 `lib`、`assets`、`l10n`、`ios` 有更新，需同步到 `ios_mini`（复制或脚本），再提交并推送。
+推送或手动触发 `.github/workflows/ios-mini-build.yml`，产物为 `ios-mini-ipa-<run_number>`。

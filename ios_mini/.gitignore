@@ -1,17 +1,21 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-.DS_Store
-.idea/
-
-# Flutter/Dart/Pub
+# Flutter
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
-/coverage/
+*.symbols
+*.map.json
 
-# iOS build / Xcode
-/ios/build/
+# iOS
+ios/build/
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.*
+
+# IDE
+.idea/
+*.iml
+.DS_Store
