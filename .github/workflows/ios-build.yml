@@ -45,8 +45,8 @@ jobs:
         run: flutter pub get
         working-directory: app
 
-      - name: Patch iOS – disable Jitsi registration
-        run: bash scripts/patch_ios_jitsi.sh
+      - name: Patch iOS – disable Jitsi registration (after pub get)
+        run: python3 scripts/patch_ios_jitsi.py
         working-directory: app
 
       # if 条件中不能使用 secrets，故用 step output 表示是否配置了签名（IOS0222）
@@ -127,6 +127,12 @@ jobs:
           flutter build ios --release --no-codesign -v \
             --build-name="1.0.${{ github.run_number }}" \
             --build-number="${{ github.run_number }}"
+        working-directory: app
+
+      # flutter build ios 可能重新生成 GeneratedPluginRegistrant.m，故在 archive 前再打一次补丁，确保 xcodebuild 编译的是无 Jitsi 注册的版本
+      - name: Patch iOS – disable Jitsi registration (before archive)
+        if: steps.ipa_secrets.outputs.has_cert == 'true'
+        run: python3 scripts/patch_ios_jitsi.py
         working-directory: app
 
       - name: Prepare ExportOptions with profile UUID
