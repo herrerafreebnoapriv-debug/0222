@@ -45,6 +45,10 @@ jobs:
         run: flutter pub get
         working-directory: app
 
+      - name: Patch iOS – disable Jitsi registration
+        run: bash scripts/patch_ios_jitsi.sh
+        working-directory: app
+
       # if 条件中不能使用 secrets，故用 step output 表示是否配置了签名（IOS0222）
       - name: Check IPA signing secrets
         id: ipa_secrets
