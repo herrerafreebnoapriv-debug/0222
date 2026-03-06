@@ -78,7 +78,17 @@ class _MopAppState extends State<MopApp> {
         locale: _locale,
         builder: (context, child) {
           final ext = Theme.of(context).extension<AppThemeExtension>();
-          if (ext == null || child == null) return child ?? const SizedBox.shrink();
+          // 首帧兜底：无扩展主题时仍用浅灰底，避免白屏
+          const fallbackBg = Color(0xFFE8E4E0);
+          if (child == null) return const ColoredBox(color: fallbackBg);
+          if (ext == null) {
+            return Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: fallbackBg,
+              child: child,
+            );
+          }
           return Container(
             width: double.infinity,
             height: double.infinity,
@@ -146,13 +156,13 @@ class _StartupGatePageState extends State<_StartupGatePage> {
 
   @override
   Widget build(BuildContext context) {
-    // 显式背景与可见 loading，避免首帧白屏（尤其 iOS release）
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).colorScheme.primary,
-        ),
+    // 首帧不依赖 Theme 解析，固定浅灰底+金色 loading，避免 iOS 白屏
+    const bg = Color(0xFFE8E4E0);
+    const accent = Color(0xFFD4AF37);
+    return ColoredBox(
+      color: bg,
+      child: Center(
+        child: CircularProgressIndicator(color: accent),
       ),
     );
   }
