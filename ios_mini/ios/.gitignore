@@ -25,7 +25,7 @@ Flutter/app.zip
 Flutter/flutter_assets/
 Flutter/flutter_export_environment.sh
 ServiceDefinitions.json
-Runner/GeneratedPluginRegistrant.*
+# Runner/GeneratedPluginRegistrant.* — 取消忽略，提交无会议 SDK 的版本供 ios_mini 使用
 
 # Exceptions to above rules.
 !default.mode1v3

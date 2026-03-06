@@ -44,6 +44,15 @@ jobs:
         run: flutter pub get
         working-directory: ios_mini
 
+      - name: Assert no meeting SDK in iOS plugin registrant (ios_mini 禁止包含)
+        run: |
+          if grep -qiE 'jitsi|JitsiMeet' ios/Runner/GeneratedPluginRegistrant.m ios/Runner/GeneratedPluginRegistrant.h 2>/dev/null; then
+            echo "::error::GeneratedPluginRegistrant 仍包含会议 SDK 引用，ios_mini 禁止使用，请从 ios_mini 目录执行 pub get/build 或检查依赖"
+            exit 1
+          fi
+          echo "GeneratedPluginRegistrant 无会议 SDK，通过"
+        working-directory: ios_mini
+
       - name: Check IPA signing secrets
         id: ipa_secrets
         run: |

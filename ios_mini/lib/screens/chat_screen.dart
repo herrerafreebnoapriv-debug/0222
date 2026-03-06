@@ -136,14 +136,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   _showRemarkDialog(l10n);
                   break;
                 case 'voice_video':
-                  // iOS 暂不启用 Jitsi，下阶段再开放
+                  // iOS 精简版仅展示占位页，下阶段开放
                   if (Theme.of(context).platform == TargetPlatform.iOS) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(l10n.voiceVideoIosDisabled)),
                     );
                   } else {
                     Navigator.of(context).pushNamed(
-                      '/jitsi_join',
+                      '/voice_video_join',
                       arguments: {
                         'peerNickname': _peerNickname,
                         'peerUid': ChatScreen.getArgs(context)?['peerUid'] ?? '',

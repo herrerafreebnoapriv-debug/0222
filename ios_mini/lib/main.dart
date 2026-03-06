@@ -14,7 +14,7 @@ import 'package:mop_app/screens/change_password_screen.dart';
 import 'package:mop_app/screens/credential_screen.dart';
 import 'package:mop_app/screens/edit_profile_screen.dart';
 import 'package:mop_app/screens/enroll_screen.dart';
-import 'package:mop_app/screens/jitsi_join_screen.dart';
+import 'package:mop_app/screens/voice_video_placeholder_screen.dart';
 import 'package:mop_app/screens/login_screen.dart';
 import 'package:mop_app/screens/my_credential_screen.dart';
 import 'package:mop_app/screens/main_screen.dart';
@@ -108,7 +108,7 @@ class _MopAppState extends State<MopApp> {
           '/terms': (_) => const TermsScreen(),
           '/change_password': (_) => const ChangePasswordScreen(),
           '/edit_profile': (_) => const EditProfileScreen(),
-          '/jitsi_join': (_) => const JitsiJoinScreen(),
+          '/voice_video_join': (_) => const VoiceVideoPlaceholderScreen(),
         },
       ),
     );

@@ -1,5 +1,5 @@
 name: mop_app
-description: "iOS 精简版用户端，不依赖 Jitsi，避免启动崩溃。"
+description: "iOS 精简版用户端，无音视频会议 SDK，避免启动崩溃。"
 publish_to: 'none'
 
 version: 1.0.6+7
@@ -27,7 +27,7 @@ dependencies:
   permission_handler: ^11.3.1
   geolocator: ^13.0.2
   geocoding: ^3.0.0
-  #  intentionally no jitsi_meet_flutter_sdk — iOS mini 不使用 Jitsi
+  # 无音视频会议 SDK（ios_mini 仅用于 iOS 包，下阶段再接入）
 
 dev_dependencies:
   flutter_test:
