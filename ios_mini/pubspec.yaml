@@ -1,6 +1,5 @@
-# ios_mini：仅 iOS 构建，不依赖 Jitsi，避免启动崩溃
 name: mop_app
-description: "MOi iOS 用户端精简版（无 Jitsi）。"
+description: "iOS 精简版用户端，不依赖 Jitsi，避免启动崩溃。"
 publish_to: 'none'
 
 version: 1.0.6+7
@@ -28,7 +27,7 @@ dependencies:
   permission_handler: ^11.3.1
   geolocator: ^13.0.2
   geocoding: ^3.0.0
-  # 刻意不依赖 jitsi_meet_flutter_sdk，iOS 精简版不集成 Jitsi
+  #  intentionally no jitsi_meet_flutter_sdk — iOS mini 不使用 Jitsi
 
 dev_dependencies:
   flutter_test:

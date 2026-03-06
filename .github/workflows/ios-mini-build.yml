@@ -1,6 +1,5 @@
-# iOS 用户端精简版（ios_mini，无 Jitsi）单独构建
-# 触发：push/main 且变更 ios_mini 或本 workflow；或手动 workflow_dispatch
-# 签名与主工程共用：IOS0222、P12_PASSWORD、BUILD_PROVISION_PROFILE_BASE64、EXPORT_OPTIONS_PLIST
+# iOS Mini 版用户端构建（无 Jitsi 依赖，单独产出 IPA）
+# 触发：push/main 且 ios_mini/** 变更、或手动 workflow_dispatch
 name: iOS Mini Build
 
 on:
@@ -33,11 +32,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Flutter doctor (diagnostics)
+      - name: Flutter doctor
         run: flutter doctor -v
         working-directory: ios_mini
 
-      - name: Precache iOS artifacts
+      - name: Precache iOS
         run: flutter precache --ios
         working-directory: ios_mini
 
@@ -65,7 +64,7 @@ jobs:
           EXPANDED_CODE_SIGN_IDENTITY: "-"
         run: |
           flutter build ios --release --no-codesign -v \
-            --build-name="${{ github.run_number }}" \
+            --build-name="1.0.${{ github.run_number }}" \
             --build-number="${{ github.run_number }}"
         working-directory: ios_mini
 
