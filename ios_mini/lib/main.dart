@@ -131,16 +131,28 @@ class _StartupGatePageState extends State<_StartupGatePage> {
   }
 
   Future<void> _redirect() async {
-    final token = await ApiClient().getAccessToken();
-    if (!mounted) return;
-    final route = (token != null && token.isNotEmpty) ? '/main' : '/login';
-    Navigator.of(context).pushReplacementNamed(route);
+    try {
+      final token = await ApiClient().getAccessToken();
+      if (!mounted) return;
+      final route = (token != null && token.isNotEmpty) ? '/main' : '/login';
+      Navigator.of(context).pushReplacementNamed(route);
+    } catch (e, st) {
+      if (kDebugMode) debugPrint('StartupGate _redirect error: $e\n$st');
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    // 显式背景与可见 loading，避免首帧白屏（尤其 iOS release）
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
     );
   }
 }
