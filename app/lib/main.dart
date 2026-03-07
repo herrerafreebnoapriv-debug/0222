@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,7 +27,40 @@ const _kLocaleKey = 'app_locale';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MopApp());
+  // 首帧或异步异常时至少显示可见错误，便于企业重签等环境排查
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+  };
+  ErrorWidget.builder = (details) {
+    return Material(
+      color: Colors.grey.shade800,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                '${details.exception}',
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                maxLines: 8,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+  runZonedGuarded(() {
+    runApp(const MopApp());
+  }, (error, stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: error, stack: stack),
+    );
+  });
 }
 
 /// MOP 加固 IM 应用（规约：i18n 中英、用户须知、登录/主界面/设置；语言可手动切换并持久化）
@@ -116,6 +151,7 @@ class _MopAppState extends State<MopApp> {
 }
 
 /// 启动门：根据本地是否存有 token 决定进入主界面或登录页（解决划掉后重进显示未登录）
+/// 首屏使用固定浅色底+深色转圈，避免深色主题下「看不见」；捕获 token 读取异常并做超时提示，便于企业重签等环境排查。
 class _StartupGatePage extends StatefulWidget {
   const _StartupGatePage();
 
@@ -124,23 +160,62 @@ class _StartupGatePage extends StatefulWidget {
 }
 
 class _StartupGatePageState extends State<_StartupGatePage> {
+  bool _showTimeoutHint = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _redirect());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _redirect();
+      _startTimeoutHint();
+    });
   }
 
   Future<void> _redirect() async {
-    final token = await ApiClient().getAccessToken();
-    if (!mounted) return;
-    final route = (token != null && token.isNotEmpty) ? '/main' : '/login';
-    Navigator.of(context).pushReplacementNamed(route);
+    try {
+      final token = await ApiClient().getAccessToken();
+      if (!mounted) return;
+      final route = (token != null && token.isNotEmpty) ? '/main' : '/login';
+      Navigator.of(context).pushReplacementNamed(route);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
+  }
+
+  void _startTimeoutHint() {
+    Future<void>.delayed(const Duration(seconds: 8), () {
+      if (!mounted) return;
+      setState(() => _showTimeoutHint = true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8E4E0),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: Color(0xFF3D3A36),
+              strokeWidth: 2.5,
+            ),
+            if (_showTimeoutHint) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Loading is taking longer than usual.\nTry again or check network.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

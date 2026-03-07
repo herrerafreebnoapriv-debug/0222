@@ -31,6 +31,10 @@ flutter build apk --target-platform android-arm64
 
 联调时将 API Host 指向 mop2（89.223.95.18），见根目录 dev-env/LOCAL-FLUTTER-SETUP.md。**Debug 模式**下若未保存过 Host，默认使用 `http://89.223.95.18`，可直接用内置账户 user123/123456 登录联调。
 
+### iOS 企业重签说明
+
+若对 CI 产出的 IPA 做**企业证书重签**后安装出现「深色屏、无可见界面」，多为重签时**未对包内所有可执行体签名**。IPA 内除主程序 `Runner` 外，还包含 `Frameworks/Flutter.framework`、`Frameworks/App.framework` 及各插件 `.framework`，这些都必须用**同一企业证书与描述文件**做递归/深度签名，否则 iOS 会拒绝加载 Flutter 引擎，仅显示原生深色背景。请使用支持「深度签名」或「递归签名所有 framework」的工具或脚本重签。
+
 ## 后续阶段
 
 - **阶段③** 管理后台与用户端网页：已做 admin 登录与 API 基地址、设备列表尝试从 API 加载；用户端网页登录对接 auth/login；build-sync 见 PROTOCOL 与 admin README。
