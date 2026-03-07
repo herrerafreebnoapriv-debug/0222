@@ -1,0 +1,128 @@
+# 纯原生 iOS（app-ios-native）构建：本机 Win10 + Cursor 编写代码 → 推送到 GitHub → 本 workflow 在 Actions 构建 IPA
+# 触发：push/main 且 app-ios-native 或本文件变更、或手动 workflow_dispatch
+# 签名：与 Flutter iOS 共用 IOS0222、BUILD_PROVISION_PROFILE_BASE64 等；描述文件需包含 Bundle ID app.suyun9289.test.native
+name: iOS Native Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app-ios-native/**'
+      - '.github/workflows/ios-native-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.2'
+
+      - name: Check IPA signing secrets
+        id: ipa_secrets
+        run: |
+          echo "has_cert=$([ -n \"$IOS0222\" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_provision=$([ -n \"$BUILD_PROVISION_PROFILE_BASE64\" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+        env:
+          IOS0222: ${{ secrets.IOS0222 }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+
+      - name: Ensure IPA signing secrets are present
+        if: steps.ipa_secrets.outputs.has_cert != 'true' || steps.ipa_secrets.outputs.has_provision != 'true'
+        run: |
+          echo "archive/export IPA requires signing secrets." >&2
+          echo "Missing one or more: IOS0222, BUILD_PROVISION_PROFILE_BASE64." >&2
+          exit 1
+
+      - name: Create keychain and import certificate
+        env:
+          IOS0222: ${{ secrets.IOS0222 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
+          echo "$IOS0222" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $RUNNER_TEMP/cert.p12 -k $KEYCHAIN_PATH -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security default-keychain -s $KEYCHAIN_PATH
+
+      - name: Install provisioning profile
+        id: install_provision
+        env:
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > /tmp/profile.mobileprovision
+          PLIST=$(security cms -D -i /tmp/profile.mobileprovision)
+          UUID=$(echo "$PLIST" | plutil -extract UUID raw -)
+          NAME=$(echo "$PLIST" | plutil -extract Name raw - 2>/dev/null || echo "unknown")
+          TEAM_ID=$(echo "$PLIST" | plutil -extract TeamIdentifier.0 raw - 2>/dev/null || echo "$PLIST" | plutil -extract TeamIdentifier raw - 2>/dev/null)
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID.mobileprovision"
+          echo "profile_uuid=$UUID" >> $GITHUB_OUTPUT
+          echo "profile_name=$NAME" >> $GITHUB_OUTPUT
+          echo "team_id=$TEAM_ID" >> $GITHUB_OUTPUT
+          echo "Installed profile: $NAME (UUID=$UUID, Team=$TEAM_ID)"
+
+      - name: Set MOiNative code signing in project
+        run: |
+          python3 app-ios-native/scripts/set_signing.py \
+            app-ios-native/MOiNative.xcodeproj/project.pbxproj \
+            "${{ steps.install_provision.outputs.team_id }}" \
+            "${{ steps.install_provision.outputs.profile_uuid }}"
+
+      - name: Archive MOiNative
+        run: |
+          xcodebuild -project app-ios-native/MOiNative.xcodeproj -scheme MOiNative -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath app-ios-native/build/MOiNative.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="iPhone Distribution"
+
+      - name: Prepare ExportOptions for MOiNative
+        run: |
+          PROFILE_NAME="${{ steps.install_provision.outputs.profile_name }}"
+          TEAM_ID="${{ steps.install_provision.outputs.team_id }}"
+          mkdir -p app-ios-native/build
+          cat > app-ios-native/build/ExportOptions.plist << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingCertificate</key>
+            <string>iPhone Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>app.suyun9289.test.native</key>
+              <string>${PROFILE_NAME}</string>
+            </dict>
+          </dict>
+          </plist>
+          PLIST
+          echo "ExportOptions: team=${TEAM_ID}, profile=${PROFILE_NAME}"
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath app-ios-native/build/MOiNative.xcarchive \
+            -exportPath app-ios-native/build/ipa \
+            -exportOptionsPlist app-ios-native/build/ExportOptions.plist
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-native-ipa-${{ github.run_number }}
+          path: app-ios-native/build/ipa/*.ipa

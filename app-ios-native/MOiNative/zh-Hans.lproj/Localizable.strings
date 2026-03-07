@@ -1,0 +1,41 @@
+/* Login */
+"login" = "登录";
+"identityPlaceholder" = "手机号或用户名";
+"passwordPlaceholder" = "密码";
+"termsTitle" = "用户须知和免责声明";
+"termsContent" = "请您在使用前仔细阅读《用户须知和免责声明》。使用本应用即表示您已阅读并同意相关条款。";
+"termsAgree" = "已阅读并同意《用户须知和免责声明》";
+"goEnroll" = "新用户？去资料补全";
+"loginFail" = "登录失败";
+
+/* Tabs */
+"tabHome" = "首页";
+"tabSettings" = "设置";
+"tabCredential" = "凭证";
+
+/* Settings */
+"settings" = "设置";
+"language" = "语言";
+"logout" = "退出登录";
+"langFollowSystem" = "跟随系统";
+"langZh" = "中文";
+"langEn" = "English";
+
+/* Credential */
+"credentialTitle" = "我的凭证";
+"credentialSave" = "保存到相册";
+"credentialEnterMain" = "进入主界面";
+"confirm" = "确定";
+"cancel" = "取消";
+"savedToGallery" = "已保存到相册";
+"saveFailed" = "保存失败";
+
+/* Home */
+"homeTitle" = "首页";
+"homePlaceholder" = "主界面（占位）";
+
+/* Terms recheck */
+"userTerms" = "用户须知与免责声明";
+
+/* Common */
+"errorEmptyCredentials" = "请输入账号和密码";

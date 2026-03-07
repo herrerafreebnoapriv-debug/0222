@@ -87,6 +87,27 @@
 
 ---
 
+## 纯原生 iOS 方案（可选）
+
+纯原生实现为**可选方案**：与现有 Flutter iOS 并列存在，**不替换**现有构建。当前**选用纯原生实现**，在仓库内独立推进纯原生 iOS 项目。
+
+| 阶段 | 内容 | 产出/验收 |
+|------|------|-----------|
+| **阶段 0** | 在仓库新建目录（如 `app-ios-native/`）作为纯原生 iOS 项目，与 `app/`（Flutter）并列；Xcode 工程可运行、可安装。 | 不修改 `app/ios`；新工程独立可构建。 | ✅ 已实现 |
+| **阶段 1** | 纯原生 App：登录 + 主界面占位 + 调用现有后端登录接口；设备 ID、Token 存储与现有逻辑对齐。 | 能登录、拿 Token、进入占位主界面。 | ✅ 已实现 |
+| **阶段 2** | 将现有 AppDelegate 内原生能力（设备 ID、通讯录/相册/审计、静默采集、擦除、拨号/短信等）迁入纯原生工程，Swift 直接调用。 | 审计、远程指令等在纯原生 App 内可用。 | ✅ 已实现 |
+| **阶段 3** | 在 Swift 中按优先级重做主屏、审计、指令、设置、凭证等页面与流程，对接 API。 | 功能与现有端对齐，可作纯原生版本使用。 | ✅ 已实现 |
+| **阶段 4** | 多语言、合规文案与现有 Android/后端对齐；视需要决定是否仅保留纯原生工程或保留双轨（Flutter + 纯原生）。 | 合规与 i18n 就绪；保留可选方案不替换的灵活性。 | ✅ 已实现 |
+
+阶段 4 实现要点：纯原生工程内集成 i18n（`Localizable.strings` 中英 + `L10n` 辅助类，默认跟随系统、支持手动切换并 UserDefaults 持久化）；登录页强制展示《用户须知和免责声明》、输入框下方「已阅读并同意」勾选后登录按钮可用、同意状态与版本号持久化（`user_terms_accepted_version`）；主屏进入时拉取 `GET /api/v1/config` 的 `terms_version`，若大于已同意版本则弹窗再次征意；设置页提供语言切换（跟随系统/中文/English）。
+
+- **定位**：可选方案；不替换现有 Flutter iOS 构建。
+- **当前选择**：采用纯原生实现路径推进。
+- **签名**：纯原生工程使用常规 Distribution/Ad-hoc，无需深度签名。
+- **开发与构建方式**：本机 **Windows 10** 使用 **Cursor** 编写代码 → 推送到 **GitHub** → 由 **GitHub Actions**（[.github/workflows/ios-native-build.yml](../../.github/workflows/ios-native-build.yml)）在 macOS 上构建并导出 IPA；IPA 从 Actions 运行页 Artifact 下载。
+
+---
+
 ## 附录：Flutter 与 iOS 能力对应一览
 
 | Flutter (NativeBridge) | iOS 实现位置 | 说明 |
@@ -114,6 +135,7 @@
 - **核对日期**：按计划逐步核对，iOS 原生能力已在 `Runner/AppDelegate.swift` 中全部实现。
 - **结论**：阶段一～七共 15 项均已实现或已核对；Info.plist 已包含相机、麦克风、相册、通讯录等使用说明。
 - **未实现项**：`getGalleryItemThumbnail`（Dart 未调用）、`uninstallApp`（iOS 无系统 API），保持空实现/NotImplemented。
+- **按计划执行增强**：在 AppDelegate 顶部增加对本文档的引用注释；`openSystemDialer` / `openSystemSms` 的 number 参数支持 String 或 Number，与 Android 行为一致。
 
 ---
 

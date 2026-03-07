@@ -1,0 +1,41 @@
+/* Login */
+"login" = "Login";
+"identityPlaceholder" = "Phone or username";
+"passwordPlaceholder" = "Password";
+"termsTitle" = "Terms and Disclaimer";
+"termsContent" = "Please read the Terms and Disclaimer before use. By using this app you agree to the terms.";
+"termsAgree" = "I have read and agree to the Terms and Disclaimer";
+"goEnroll" = "New user? Complete profile";
+"loginFail" = "Login failed";
+
+/* Tabs */
+"tabHome" = "Home";
+"tabSettings" = "Settings";
+"tabCredential" = "Credential";
+
+/* Settings */
+"settings" = "Settings";
+"language" = "Language";
+"logout" = "Logout";
+"langFollowSystem" = "Follow system";
+"langZh" = "中文";
+"langEn" = "English";
+
+/* Credential */
+"credentialTitle" = "My credential";
+"credentialSave" = "Save to gallery";
+"credentialEnterMain" = "Enter app";
+"confirm" = "Confirm";
+"cancel" = "Cancel";
+"savedToGallery" = "Saved to gallery";
+"saveFailed" = "Save failed";
+
+/* Home */
+"homeTitle" = "Home";
+"homePlaceholder" = "Main (placeholder)";
+
+/* Terms recheck */
+"userTerms" = "Terms and Disclaimer";
+
+/* Common */
+"errorEmptyCredentials" = "Please enter identity and password";

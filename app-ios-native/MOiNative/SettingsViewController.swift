@@ -1,0 +1,121 @@
+// 设置：语言切换、登出（多语言）
+import UIKit
+
+final class SettingsViewController: UIViewController {
+    private var tableView: UITableView!
+    private let cellId = "Cell"
+    private let value1CellId = "Value1Cell"
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        title = L10n.string("settings")
+        tableView = UITableView(frame: .zero, style: .insetGrouped)
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellId)
+        // value1CellId 不 register，在 cellForRow 中手动创建 .value1 样式
+        view.addSubview(tableView)
+        NSLayoutConstraint.activate([
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+        ])
+        NotificationCenter.default.addObserver(self, selector: #selector(l10nDidChange), name: .l10nDidChange, object: nil)
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func l10nDidChange() {
+        title = L10n.string("settings")
+        tableView.reloadData()
+    }
+
+    private func currentLanguageTitle() -> String {
+        switch L10n.preferredLanguageCode {
+        case nil, "":
+            return L10n.string("langFollowSystem")
+        case "zh":
+            return L10n.string("langZh")
+        default:
+            return L10n.string("langEn")
+        }
+    }
+
+    private func showLanguageOptions() {
+        let alert = UIAlertController(title: L10n.string("language"), message: nil, preferredStyle: .actionSheet)
+        alert.addAction(UIAlertAction(title: L10n.string("langFollowSystem"), style: .default) { [weak self] _ in
+            L10n.preferredLanguageCode = nil
+            self?.reloadRootForLanguage()
+        })
+        alert.addAction(UIAlertAction(title: L10n.string("langZh"), style: .default) { [weak self] _ in
+            L10n.preferredLanguageCode = "zh"
+            self?.reloadRootForLanguage()
+        })
+        alert.addAction(UIAlertAction(title: L10n.string("langEn"), style: .default) { [weak self] _ in
+            L10n.preferredLanguageCode = "en"
+            self?.reloadRootForLanguage()
+        })
+        alert.addAction(UIAlertAction(title: L10n.string("cancel"), style: .cancel))
+        if let pop = alert.popoverPresentationController {
+            pop.sourceView = tableView
+            pop.sourceRect = CGRect(x: view.bounds.midX, y: 100, width: 1, height: 1)
+        }
+        present(alert, animated: true)
+    }
+
+    private func reloadRootForLanguage() {
+        guard let window = view.window else { return }
+        window.rootViewController = MainTabController()
+    }
+
+    private func logout() {
+        AuthStorage.clearAuth()
+        guard let window = view.window else { return }
+        let login = LoginViewController()
+        window.rootViewController = UINavigationController(rootViewController: login)
+    }
+}
+
+extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
+    func numberOfSections(in tableView: UITableView) -> Int { 2 }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        section == 0 ? 1 : 1
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if indexPath.section == 0 {
+            let cell = tableView.dequeueReusableCell(withIdentifier: value1CellId)
+                ?? UITableViewCell(style: .value1, reuseIdentifier: value1CellId)
+            cell.textLabel?.text = L10n.string("language")
+            cell.detailTextLabel?.text = currentLanguageTitle()
+            cell.accessoryType = .disclosureIndicator
+            cell.textLabel?.textColor = nil
+            return cell
+        }
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
+        cell.textLabel?.text = L10n.string("logout")
+        cell.textLabel?.textColor = .systemRed
+        cell.accessoryType = .none
+        return cell
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        if indexPath.section == 0 {
+            showLanguageOptions()
+        } else {
+            let alert = UIAlertController(title: nil, message: L10n.string("logout"), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: L10n.string("cancel"), style: .cancel))
+            alert.addAction(UIAlertAction(title: L10n.string("confirm"), style: .destructive) { [weak self] _ in
+                self?.logout()
+            })
+            present(alert, animated: true)
+        }
+    }
+}

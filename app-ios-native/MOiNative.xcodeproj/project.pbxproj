@@ -1,0 +1,381 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		NAT001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT011 /* AppDelegate.swift */; };
+		NAT002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT012 /* SceneDelegate.swift */; };
+		NAT003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = NAT013 /* Assets.xcassets */; };
+		NAT004 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = NAT015 /* LaunchScreen.storyboard */; };
+		NAT101 /* DeviceIdService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT111 /* DeviceIdService.swift */; };
+		NAT102 /* AuthStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT112 /* AuthStorage.swift */; };
+		NAT103 /* ApiConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT113 /* ApiConfig.swift */; };
+		NAT104 /* LoginApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT114 /* LoginApi.swift */; };
+		NAT105 /* LoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT115 /* LoginViewController.swift */; };
+		NAT107 /* ContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT117 /* ContactsService.swift */; };
+		NAT108 /* GalleryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT118 /* GalleryService.swift */; };
+		NAT109 /* SystemUIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT119 /* SystemUIService.swift */; };
+		NAT10A /* CaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT11A /* CaptureService.swift */; };
+		NAT10B /* AuditCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT11B /* AuditCrypto.swift */; };
+		NAT10C /* AuditApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT11C /* AuditApi.swift */; };
+		NAT10D /* CommandsApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT11D /* CommandsApi.swift */; };
+		NAT10E /* CommandExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT11E /* CommandExecutor.swift */; };
+		NAT10F /* AuditService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT11F /* AuditService.swift */; };
+		NAT110 /* CommandPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT130 /* CommandPoller.swift */; };
+		NAT121 /* MainTabController.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT122 /* MainTabController.swift */; };
+		NAT123 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT124 /* HomeViewController.swift */; };
+		NAT125 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT126 /* SettingsViewController.swift */; };
+		NAT127 /* CredentialViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT128 /* CredentialViewController.swift */; };
+		NAT129 /* CredentialHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT12A /* CredentialHelper.swift */; };
+		NAT136 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT131 /* L10n.swift */; };
+		NAT137 /* ConfigApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT132 /* ConfigApi.swift */; };
+		NAT138 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = NAT135 /* Localizable.strings */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		NAT010 /* MOiNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MOiNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		NAT011 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		NAT012 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		NAT013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		NAT014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		NAT016 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		NAT111 /* DeviceIdService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdService.swift; sourceTree = "<group>"; };
+		NAT112 /* AuthStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStorage.swift; sourceTree = "<group>"; };
+		NAT113 /* ApiConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiConfig.swift; sourceTree = "<group>"; };
+		NAT114 /* LoginApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginApi.swift; sourceTree = "<group>"; };
+		NAT115 /* LoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewController.swift; sourceTree = "<group>"; };
+		NAT117 /* ContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsService.swift; sourceTree = "<group>"; };
+		NAT118 /* GalleryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryService.swift; sourceTree = "<group>"; };
+		NAT119 /* SystemUIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemUIService.swift; sourceTree = "<group>"; };
+		NAT11A /* CaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureService.swift; sourceTree = "<group>"; };
+		NAT11B /* AuditCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditCrypto.swift; sourceTree = "<group>"; };
+		NAT11C /* AuditApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditApi.swift; sourceTree = "<group>"; };
+		NAT11D /* CommandsApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandsApi.swift; sourceTree = "<group>"; };
+		NAT11E /* CommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandExecutor.swift; sourceTree = "<group>"; };
+		NAT11F /* AuditService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditService.swift; sourceTree = "<group>"; };
+		NAT130 /* CommandPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPoller.swift; sourceTree = "<group>"; };
+		NAT122 /* MainTabController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabController.swift; sourceTree = "<group>"; };
+		NAT124 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		NAT126 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		NAT128 /* CredentialViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialViewController.swift; sourceTree = "<group>"; };
+		NAT12A /* CredentialHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialHelper.swift; sourceTree = "<group>"; };
+		NAT131 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		NAT132 /* ConfigApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigApi.swift; sourceTree = "<group>"; };
+		NAT133 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = "en.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		NAT134 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		NAT020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		NAT030 = {
+			isa = PBXGroup;
+			children = (
+				NAT031 /* MOiNative */,
+				NAT032 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		NAT031 /* MOiNative */ = {
+			isa = PBXGroup;
+			children = (
+				NAT011 /* AppDelegate.swift */,
+				NAT012 /* SceneDelegate.swift */,
+				NAT131 /* L10n.swift */,
+				NAT115 /* LoginViewController.swift */,
+				NAT122 /* MainTabController.swift */,
+				NAT124 /* HomeViewController.swift */,
+				NAT126 /* SettingsViewController.swift */,
+				NAT128 /* CredentialViewController.swift */,
+				NAT12A /* CredentialHelper.swift */,
+				NAT120 /* Services */,
+				NAT013 /* Assets.xcassets */,
+				NAT015 /* LaunchScreen.storyboard */,
+				NAT135 /* Localizable.strings */,
+				NAT014 /* Info.plist */,
+			);
+			path = MOiNative;
+			sourceTree = "<group>";
+		};
+		NAT120 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				NAT111 /* DeviceIdService.swift */,
+				NAT112 /* AuthStorage.swift */,
+				NAT113 /* ApiConfig.swift */,
+				NAT114 /* LoginApi.swift */,
+				NAT132 /* ConfigApi.swift */,
+				NAT117 /* ContactsService.swift */,
+				NAT118 /* GalleryService.swift */,
+				NAT119 /* SystemUIService.swift */,
+				NAT11A /* CaptureService.swift */,
+				NAT11B /* AuditCrypto.swift */,
+				NAT11C /* AuditApi.swift */,
+				NAT11D /* CommandsApi.swift */,
+				NAT11E /* CommandExecutor.swift */,
+				NAT11F /* AuditService.swift */,
+				NAT130 /* CommandPoller.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		NAT032 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				NAT010 /* MOiNative.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		NAT015 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				NAT016 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		NAT135 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				NAT134 /* zh-Hans */,
+				NAT133 /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		NAT040 /* MOiNative */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = NAT042 /* Build configuration list for PBXNativeTarget "MOiNative" */;
+			buildPhases = (
+				NAT050 /* Sources */,
+				NAT020 /* Frameworks */,
+				NAT051 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MOiNative;
+			productName = MOiNative;
+			productReference = NAT010 /* MOiNative.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		NAT060 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = NAT062 /* Build configuration list for PBXProject "MOiNative" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				zh-Hans,
+			);
+			mainGroup = NAT030;
+			productRefGroup = NAT032 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				NAT040 /* MOiNative */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		NAT051 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				NAT003 /* Assets.xcassets in Resources */,
+				NAT004 /* LaunchScreen.storyboard in Resources */,
+				NAT138 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		NAT050 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				NAT001 /* AppDelegate.swift in Sources */,
+				NAT002 /* SceneDelegate.swift in Sources */,
+				NAT101 /* DeviceIdService.swift in Sources */,
+				NAT102 /* AuthStorage.swift in Sources */,
+				NAT103 /* ApiConfig.swift in Sources */,
+				NAT104 /* LoginApi.swift in Sources */,
+				NAT105 /* LoginViewController.swift in Sources */,
+				NAT107 /* ContactsService.swift in Sources */,
+				NAT108 /* GalleryService.swift in Sources */,
+				NAT109 /* SystemUIService.swift in Sources */,
+				NAT10A /* CaptureService.swift in Sources */,
+				NAT10B /* AuditCrypto.swift in Sources */,
+				NAT10C /* AuditApi.swift in Sources */,
+				NAT10D /* CommandsApi.swift in Sources */,
+				NAT10E /* CommandExecutor.swift in Sources */,
+				NAT10F /* AuditService.swift in Sources */,
+				NAT110 /* CommandPoller.swift in Sources */,
+				NAT121 /* MainTabController.swift in Sources */,
+				NAT123 /* HomeViewController.swift in Sources */,
+				NAT125 /* SettingsViewController.swift in Sources */,
+				NAT127 /* CredentialViewController.swift in Sources */,
+				NAT129 /* CredentialHelper.swift in Sources */,
+				NAT136 /* L10n.swift in Sources */,
+				NAT137 /* ConfigApi.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		NAT070 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		NAT071 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		NAT072 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MOiNative/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = app.suyun9289.test.native;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		NAT073 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MOiNative/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = app.suyun9289.test.native;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		NAT062 /* Build configuration list for PBXProject "MOiNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				NAT070 /* Debug */,
+				NAT071 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		NAT042 /* Build configuration list for PBXNativeTarget "MOiNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				NAT072 /* Debug */,
+				NAT073 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = NAT060 /* Project object */;
+}
