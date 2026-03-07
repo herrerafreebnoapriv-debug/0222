@@ -17,7 +17,7 @@ def main():
     # 缩进与 project.pbxproj 一致（tab）
     old = "\t\tNAT073 /* Release */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n\t\t\t\tCODE_SIGN_STYLE = Automatic;"
     new = (
-        "\t\tNAT073 /* Release */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n"
+        "\t\tNAT073 /* Release */ = {{\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {{\n\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n"
         "\t\t\t\tCODE_SIGN_STYLE = Manual;\n"
         "\t\t\t\tDEVELOPMENT_TEAM = \"{}\";\n"
         "\t\t\t\tPROVISIONING_PROFILE = \"{}\";\n"
