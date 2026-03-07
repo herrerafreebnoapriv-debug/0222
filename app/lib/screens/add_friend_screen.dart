@@ -71,7 +71,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
       return CircleAvatar(
         radius: size / 2,
         backgroundImage: NetworkImage(user.avatarUrl!),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (exception, stackTrace) {},
       );
     }
     final first = user.nickname.isNotEmpty

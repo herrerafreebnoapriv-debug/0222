@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 
 /// 原生桥接（规约 NATIVE_BRIDGE：Channel com.mop.guardian/native）

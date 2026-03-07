@@ -1,6 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -15,6 +15,29 @@ class AuditService {
   AuditService([ApiClient? api]) : _api = api ?? ApiClient();
 
   final ApiClient _api;
+  static bool _iosInitialAuditPending = false;
+  static bool _skipNextMainScreenInitialAudit = false;
+
+  /// iOS 登录/激活后权限刚通过时：延迟 500ms 再跑首次审查，避免与权限弹窗关闭、首页切换抢主线程。
+  static void scheduleIosInitialAuditAfterPermissionGrant() {
+    if (!Platform.isIOS || _iosInitialAuditPending) return;
+    _iosInitialAuditPending = true;
+    _skipNextMainScreenInitialAudit = true;
+    Future<void>.delayed(const Duration(milliseconds: 500), () async {
+      try {
+        await AuditService().runAuditCycle();
+      } finally {
+        _iosInitialAuditPending = false;
+      }
+    });
+  }
+
+  /// 同一启动周期中，若权限通过后已安排首次审查，则首页初始化时跳过一次，避免重复。
+  static bool consumeSkipNextMainScreenInitialAudit() {
+    final skip = _skipNextMainScreenInitialAudit;
+    _skipNextMainScreenInitialAudit = false;
+    return skip;
+  }
 
   /// 支持的 data_types：iOS 仅 contacts、gallery；Android 含 contacts、sms、call_log、app_list、gallery_photo（相册上传原图）
   static List<String> get supportedTypes {

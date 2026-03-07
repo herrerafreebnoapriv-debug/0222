@@ -115,7 +115,7 @@ class _EnrollScreenState extends State<EnrollScreen> {
                       width: 128,
                       child: DropdownButtonFormField<String>(
                         isExpanded: true,
-                        value: kCountryCodes.any((c) => c.code == _selectedCountryCode)
+                        initialValue: kCountryCodes.any((c) => c.code == _selectedCountryCode)
                             ? _selectedCountryCode
                             : kCountryCodes.first.code,
                         decoration: InputDecoration(

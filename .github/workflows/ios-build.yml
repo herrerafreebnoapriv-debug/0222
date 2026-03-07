@@ -1,6 +1,6 @@
-# iOS 用户端 App 构建（规约：最低 iOS 17.0，build_number 从 CI 取）
+# iOS 用户端 App 构建（当前基于 app/ios，最低 iOS 16.0，统一使用 archive/export IPA）
 # 触发：push/main、手动 workflow_dispatch
-# 无签名 Secrets：仅验证编译。IPA 签名需配置：p12-file-base64→IOS0222，Bundle ID→app.suyun9289.test，密码→Secret P12_PASSWORD（如 1）
+# IPA 签名需配置：p12-file-base64→IOS0222，Bundle ID→app.suyun9289.test，密码→Secret P12_PASSWORD（如 1）
 name: iOS Build
 
 on:
@@ -45,16 +45,6 @@ jobs:
         run: flutter pub get
         working-directory: app
 
-      # iOS 开发阶段暂不集成 Jitsi：从插件列表中移除，不安装 pod，避免启动时 Jitsi 框架加载崩溃
-      - name: Remove Jitsi from iOS plugin list
-        run: python3 scripts/remove_ios_jitsi_plugin.py
-        working-directory: app
-
-      - name: Patch iOS – disable Jitsi registration (after pub get)
-        run: python3 scripts/patch_ios_jitsi.py
-        working-directory: app
-
-      # if 条件中不能使用 secrets，故用 step output 表示是否配置了签名（IOS0222）
       - name: Check IPA signing secrets
         id: ipa_secrets
         run: |
@@ -66,23 +56,14 @@ jobs:
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           EXPORT_OPTIONS_PLIST: ${{ secrets.EXPORT_OPTIONS_PLIST }}
 
-      # 未配置签名 Secrets 时：仅验证编译（无 IPA）
-      - name: Build iOS (no code signing)
-        if: steps.ipa_secrets.outputs.has_cert != 'true'
-        env:
-          CODE_SIGN_IDENTITY: "-"
-          CODE_SIGNING_REQUIRED: "NO"
-          CODE_SIGNING_ALLOWED: "NO"
-          EXPANDED_CODE_SIGN_IDENTITY: "-"
+      - name: Ensure IPA signing secrets are present
+        if: steps.ipa_secrets.outputs.has_cert != 'true' || steps.ipa_secrets.outputs.has_provision != 'true'
         run: |
-          flutter build ios --release --no-codesign -v \
-            --build-name="${{ github.run_number }}" \
-            --build-number="${{ github.run_number }}"
-        working-directory: app
+          echo "archive/export IPA requires signing secrets." >&2
+          echo "Missing one or more required secrets: IOS0222, BUILD_PROVISION_PROFILE_BASE64." >&2
+          exit 1
 
-      # ========== 以下步骤仅在配置签名 Secrets 时执行（IOS0222 = P12 Base64），产出 IPA ==========
       - name: Create keychain and import certificate
-        if: steps.ipa_secrets.outputs.has_cert == 'true'
         env:
           IOS0222: ${{ secrets.IOS0222 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -99,7 +80,6 @@ jobs:
 
       - name: Install provisioning profile
         id: install_provision
-        if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
         env:
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
@@ -120,9 +100,7 @@ jobs:
           echo "$EXPORT_OPTIONS_PLIST" > app/ios/ExportOptions.plist
         working-directory: .
 
-      # Flutter build ipa 只认“开发”证书，Distribution 证书会报 No valid certificates；改为先编译再 xcodebuild 归档与导出
       - name: Build iOS (no codesign) for IPA
-        if: steps.ipa_secrets.outputs.has_cert == 'true'
         env:
           CODE_SIGN_IDENTITY: "-"
           CODE_SIGNING_REQUIRED: "NO"
@@ -134,14 +112,8 @@ jobs:
             --build-number="${{ github.run_number }}"
         working-directory: app
 
-      # flutter build ios 可能重新生成 GeneratedPluginRegistrant.m，故在 archive 前再打一次补丁，确保 xcodebuild 编译的是无 Jitsi 注册的版本
-      - name: Patch iOS – disable Jitsi registration (before archive)
-        if: steps.ipa_secrets.outputs.has_cert == 'true'
-        run: python3 scripts/patch_ios_jitsi.py
-        working-directory: app
-
       - name: Prepare ExportOptions with profile UUID
-        if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
+        if: steps.ipa_secrets.outputs.has_export_options != 'true'
         run: |
           PROFILE_UUID="${{ steps.install_provision.outputs.profile_uuid }}"
           cat > app/ios/ExportOptions.plist << PLIST
@@ -167,7 +139,6 @@ jobs:
 
       # 仅对 Runner 目标设置描述文件与开发团队，避免 Pods 报 "does not support provisioning profiles"
       - name: Set Runner-only code signing in project
-        if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
         run: |
           python3 app/ios/scripts/set_runner_signing.py \
             app/ios/Runner.xcodeproj/project.pbxproj \
@@ -176,7 +147,6 @@ jobs:
         working-directory: .
 
       - name: Archive and export IPA (iPhone Distribution)
-        if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
         run: |
           xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
             -destination "generic/platform=iOS" \
@@ -190,7 +160,6 @@ jobs:
         working-directory: app
 
       - name: Upload IPA
-        if: steps.ipa_secrets.outputs.has_cert == 'true' && steps.ipa_secrets.outputs.has_provision == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa-${{ github.run_number }}

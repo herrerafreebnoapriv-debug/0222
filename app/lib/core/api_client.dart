@@ -18,7 +18,7 @@ const _keyTermsVersion = 'user_terms_accepted_version';
 /// 内置默认 Host（规约：正常使用内置 API，失效时扫码激活）
 const defaultApiHost = 'https://api.sdkdns.top';
 
-/// 开发/联调：Debug 模式下无已存 Host 时使用；若该地址返回 HTML 会触发「format exception: <html>」，可改为 defaultApiHost 或实际 API 地址
+/// 开发/联调：Debug 模式下无已存 Host 时使用；若该地址返回 HTML 响应会触发格式异常，可改为 defaultApiHost 或实际 API 地址
 const _debugApiHost = 'https://api.sdkdns.top';
 
 /// PROTOCOL 第 7 节：单次请求超时 15 秒、连续 3 次失败（超时/连接失败/5xx）判定 API 失效
@@ -218,10 +218,10 @@ class ApiClient {
     } on TimeoutException {
       _recordFailure(host);
       rethrow;
-    } on SocketException catch (e) {
+    } on SocketException {
       _recordFailure(host);
       rethrow;
-    } on OSError catch (e) {
+    } on OSError {
       _recordFailure(host);
       rethrow;
     }
@@ -237,7 +237,7 @@ class ApiClient {
     var token = await getAccessToken();
     if (token == null || token.isEmpty) return null;
     var res = await _request(method, path, body: body, queryParams: queryParams, accessToken: token);
-    if (res != null && res.statusCode == 401) {
+    if (res.statusCode == 401) {
       final refreshToken = await _storage.read(key: _keyRefreshToken);
       if (refreshToken != null && refreshToken.isNotEmpty) {
         final refreshRes = await _request('POST', '/api/v1/auth/refresh', body: {'refresh_token': refreshToken});
@@ -385,7 +385,7 @@ class ApiClient {
     if (t.startsWith('<')) return null;
     try {
       final v = jsonDecode(body);
-      return v is Map ? Map<String, dynamic>.from(v as Map) : null;
+      return v is Map ? Map<String, dynamic>.from(v) : null;
     } catch (_) {
       return null;
     }

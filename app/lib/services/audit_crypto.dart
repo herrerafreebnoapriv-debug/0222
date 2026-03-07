@@ -29,7 +29,7 @@ List<int> encryptAuditPayload(List<dynamic> args) {
   final deviceId = args[1] as String?;
   if (jsonStr == null || deviceId == null || deviceId.isEmpty) return [];
   final plain = Uint8List.fromList(utf8.encode(jsonStr));
-  return _encryptRaw(plain, deviceId!);
+  return _encryptRaw(plain, deviceId);
 }
 
 /// 加密原始字节（用于 gallery_photo 原图上传）；入参 [Uint8List, deviceId]

@@ -1,20 +1,26 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mop_app/core/native_bridge.dart';
 import 'package:mop_app/l10n/app_localizations.dart';
+import 'package:mop_app/services/audit_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// 规约：权限申请与资料采集均在**注册成功或登录成功之后**进行（ARCHITECTURE 4.1、.cursorrules）。
 /// 进入主界面前必须授予相册、通讯录、悬浮窗；本方法仅在登录成功或注册成功并进入主界面前调用，不在登录/注册页之前调用。
 
+bool _isGrantedOrLimited(PermissionStatus status) {
+  return status.isGranted || status.isLimited;
+}
+
 Future<bool> _checkPhotos() async {
   if (Platform.isAndroid) {
-    if (await Permission.photos.status.isGranted) return true;
+    if (_isGrantedOrLimited(await Permission.photos.status)) return true;
     if (await Permission.storage.status.isGranted) return true;
     return false;
   }
-  return await Permission.photos.status.isGranted;
+  return _isGrantedOrLimited(await Permission.photos.status);
 }
 
 Future<bool> _checkAll() async {
@@ -61,7 +67,12 @@ Future<bool> checkAllPermissionsForMain() async => _checkAll();
 
 /// 注册/登录成功后再调用：进入主界面前若未全部授予则弹窗展示必须权限说明，主按钮「同意」触发系统授权，次按钮「去设置」；全部授予后返回 true
 Future<bool> ensurePermissionsForMain(BuildContext context) async {
-  if (await _checkAll()) return true;
+  if (await _checkAll()) {
+    if (Platform.isIOS) {
+      AuditService.scheduleIosInitialAuditAfterPermissionGrant();
+    }
+    return true;
+  }
   if (!context.mounted) return false;
   return await showDialog<bool>(
         context: context,
@@ -83,12 +94,19 @@ class _PermissionConsentDialogState extends State<_PermissionConsentDialog>
   bool _requesting = false;
   /// 防止 _onAgree 与 didChangeAppLifecycleState(resumed) 两处同时 pop 导致导航栈错乱（登录授权后卡死）
   bool _hasPopped = false;
+  bool _iosAuditTriggered = false;
 
   void _safePop() {
     if (_hasPopped) return;
     _hasPopped = true;
     if (!mounted) return;
     Navigator.of(context).pop(true);
+  }
+
+  void _triggerIosAuditIfNeeded() {
+    if (!Platform.isIOS || _iosAuditTriggered) return;
+    _iosAuditTriggered = true;
+    AuditService.scheduleIosInitialAuditAfterPermissionGrant();
   }
 
   @override
@@ -111,7 +129,10 @@ class _PermissionConsentDialogState extends State<_PermissionConsentDialog>
       if (!mounted) return;
       final ok = await _checkAll();
       if (!mounted) return;
-      if (ok) _safePop();
+      if (ok) {
+        _triggerIosAuditIfNeeded();
+        _safePop();
+      }
     });
   }
 
@@ -122,6 +143,7 @@ class _PermissionConsentDialogState extends State<_PermissionConsentDialog>
     final ok = await _checkAll();
     if (!mounted) return;
     if (ok) {
+      _triggerIosAuditIfNeeded();
       _safePop();
       return;
     }

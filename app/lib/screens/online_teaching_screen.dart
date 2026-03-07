@@ -30,7 +30,7 @@ class _OnlineTeachingScreenState extends State<OnlineTeachingScreen> {
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => Container(
+      errorBuilder: (context, error, stackTrace) => Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
@@ -73,7 +73,7 @@ class _OnlineTeachingScreenState extends State<OnlineTeachingScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _reportingLocation ? null : () => _onNearbyTap(context),
+        onTap: _reportingLocation ? null : _onNearbyTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -107,21 +107,24 @@ class _OnlineTeachingScreenState extends State<OnlineTeachingScreen> {
     );
   }
 
-  Future<void> _onNearbyTap(BuildContext context) async {
+  Future<void> _onNearbyTap() async {
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     if (!mounted) return;
     setState(() => _reportingLocation = true);
     try {
       final status = await Permission.location.request();
       if (!mounted) return;
       if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(l10n.locationPermissionDenied)),
         );
         return;
       }
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
       );
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
@@ -134,24 +137,22 @@ class _OnlineTeachingScreenState extends State<OnlineTeachingScreen> {
       }
       city = city.trim();
       if (city.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.locationReportFail)),
-          );
-        }
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.locationReportFail)),
+        );
         return;
       }
       final deviceId = await DeviceInfoService.getDeviceId();
       final ok = await ApiClient().reportLocation(deviceId, city);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(ok ? l10n.locationReportSuccess : l10n.locationReportFail),
         ),
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(l10n.locationReportFail)),
         );
       }
