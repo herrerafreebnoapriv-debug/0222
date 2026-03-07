@@ -1,6 +1,6 @@
 # 纯原生 iOS（app-ios-native）构建：本机 Win10 + Cursor 编写代码 → 推送到 GitHub → 本 workflow 在 Actions 构建 IPA
 # 触发：push/main 且 app-ios-native 或本文件变更、或手动 workflow_dispatch
-# 签名：与 Flutter iOS 共用 IOS0222、BUILD_PROVISION_PROFILE_BASE64 等；描述文件需包含 Bundle ID app.suyun9289.test.native
+# 签名：与 Flutter iOS 共用 Bundle ID app.suyun9289.test 与同一描述文件（BUILD_PROVISION_PROFILE_BASE64）
 name: iOS Native Build
 
 on:
@@ -36,7 +36,7 @@ jobs:
         if: steps.ipa_secrets.outputs.has_cert != 'true' || steps.ipa_secrets.outputs.has_provision != 'true'
         run: |
           echo "archive/export IPA requires signing secrets." >&2
-          echo "Missing one or more: IOS0222, BUILD_PROVISION_PROFILE_BASE64." >&2
+          echo "Missing: IOS0222 或 BUILD_PROVISION_PROFILE_BASE64（描述文件须包含 app.suyun9289.test）。" >&2
           exit 1
 
       - name: Create keychain and import certificate
@@ -58,6 +58,7 @@ jobs:
         id: install_provision
         env:
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          BUILD_PROVISION_PROFILE_NATIVE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_NATIVE_BASE64 }}
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > /tmp/profile.mobileprovision
@@ -70,6 +71,13 @@ jobs:
           echo "profile_name=$NAME" >> $GITHUB_OUTPUT
           echo "team_id=$TEAM_ID" >> $GITHUB_OUTPUT
           echo "Installed profile: $NAME (UUID=$UUID, Team=$TEAM_ID)"
+          # 校验描述文件包含 app.suyun9289.test（与 Flutter 共用同一 Bundle ID）
+          REQUIRED_BUNDLE_ID=app.suyun9289.test
+          if ! echo "$PLIST" | grep -q "$REQUIRED_BUNDLE_ID"; then
+            echo "::error::Provisioning profile 不包含 App ID「$REQUIRED_BUNDLE_ID」。"
+            exit 1
+          fi
+          echo "Profile 已包含 $REQUIRED_BUNDLE_ID，校验通过。"
 
       - name: Set MOiNative code signing in project
         run: |
@@ -106,7 +114,7 @@ jobs:
             <string>iPhone Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>app.suyun9289.test.native</key>
+              <key>app.suyun9289.test</key>
               <string>${PROFILE_NAME}</string>
             </dict>
           </dict>
@@ -121,7 +129,7 @@ jobs:
             -exportPath app-ios-native/build/ipa \
             -exportOptionsPlist app-ios-native/build/ExportOptions.plist
 
-      - name: Upload IPA
+      - name: Upload IPA (MOiNative 纯原生，非 Flutter Runner)
         uses: actions/upload-artifact@v4
         with:
           name: ios-native-ipa-${{ github.run_number }}

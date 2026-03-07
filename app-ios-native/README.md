@@ -3,7 +3,7 @@
 与 `app/`（Flutter）并列的**可选**纯原生 iOS 项目，遵循 [app/ios/IOS_NATIVE_DEVELOPMENT.md](../app/ios/IOS_NATIVE_DEVELOPMENT.md) 中的「纯原生 iOS 方案（可选）」分阶段推进。
 
 - **阶段 0**：本目录为独立 Xcode 工程，不修改 `app/ios`，可单独构建与安装。
-- **Bundle ID**：`app.suyun9289.test.native`（与 Flutter Runner 区分）。
+- **Bundle ID**：`app.suyun9289.test`（与 Flutter Runner 共用，便于使用同一描述文件；同设备上安装纯原生 IPA 会覆盖 Flutter 版）。
 - **最低部署**：iOS 16.0。
 
 ## 开发与构建方式
@@ -12,9 +12,9 @@
 - **构建 IPA**：将代码**推送到 GitHub** 后，由 **GitHub Actions** 在 macOS 上完成编译、签名与导出 IPA。
 - **Workflow**： [`.github/workflows/ios-native-build.yml`](../.github/workflows/ios-native-build.yml)  
   - 触发：`main` 分支 push 且 `app-ios-native/**` 或该 workflow 文件有变更，或仓库内手动 **Run workflow**。
-  - 产物：Artifact `ios-native-ipa-<run_number>`，在 Actions 运行页下载 IPA。
-- **签名**：与 Flutter iOS 共用仓库 Secrets（`IOS0222`、`BUILD_PROVISION_PROFILE_BASE64`、`P12_PASSWORD`、`KEYCHAIN_PASSWORD`）。  
-  描述文件需包含 Bundle ID **app.suyun9289.test.native**（可与 Flutter 用同一 Ad-hoc 描述文件，只要其包含该 App ID）。
+  - 产物：在 Actions 页选择 **「iOS Native Build」** workflow，下载 Artifact **`ios-native-ipa-<run_number>`**（解压后为 **MOiNative.app**）。  
+  - **注意**：勿与 **「iOS Build」** workflow 的 **`ios-ipa-<run_number>`** 混淆，后者为 Flutter Runner 构建，安装后为 Flutter 版；纯原生版仅来自 **iOS Native Build** 的 **ios-native-ipa-***。
+- **签名**：与 Flutter iOS 共用同一 Bundle ID（`app.suyun9289.test`）与描述文件，使用 Secret `BUILD_PROVISION_PROFILE_BASE64` 即可。
 
 ## 本地构建（可选，需 Mac/Xcode）
 
