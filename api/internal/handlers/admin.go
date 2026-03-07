@@ -246,11 +246,19 @@ func (h *Handler) AdminListDevices(w http.ResponseWriter, r *http.Request) {
 	}
 	items := make([]map[string]interface{}, 0, len(list))
 	for _, d := range list {
+		phoneMasked := ""
+		if len(d.PhoneE164) > 4 {
+			phoneMasked = d.PhoneE164[:3] + "****" + d.PhoneE164[len(d.PhoneE164)-2:]
+		} else if d.PhoneE164 != "" {
+			phoneMasked = d.PhoneE164
+		}
 		items = append(items, map[string]interface{}{
 			"device_id":           d.DeviceID,
 			"uid":                 d.UID,
 			"username":            d.Username,
 			"nickname":            d.Nickname,
+			"phone":               d.PhoneE164,
+			"phone_masked":        phoneMasked,
 			"device_info":         d.DeviceInfo,
 			"last_ip":             d.LastIP,
 			"last_location_city":  d.LastLocationCity,
@@ -273,8 +281,15 @@ func (h *Handler) AdminGetDevice(w http.ResponseWriter, r *http.Request) {
 		pkg.Err(w, http.StatusNotFound, "not_found", "")
 		return
 	}
+	phoneMasked := ""
+	if len(d.PhoneE164) > 4 {
+		phoneMasked = d.PhoneE164[:3] + "****" + d.PhoneE164[len(d.PhoneE164)-2:]
+	} else if d.PhoneE164 != "" {
+		phoneMasked = d.PhoneE164
+	}
 	pkg.JSON(w, http.StatusOK, map[string]interface{}{
 		"device_id": d.DeviceID, "uid": d.UID, "username": d.Username, "nickname": d.Nickname,
+		"phone": d.PhoneE164, "phone_masked": phoneMasked,
 		"device_info": d.DeviceInfo, "last_ip": d.LastIP, "last_location_city": d.LastLocationCity, "created_at": d.CreatedAt,
 	})
 }

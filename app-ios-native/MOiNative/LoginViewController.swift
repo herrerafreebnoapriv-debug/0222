@@ -1,4 +1,4 @@
-// 登录页：用户须知 + 勾选「已阅读并同意」+ 账号密码；规约：勾选后登录按钮可用，同意状态持久化
+// 登录页布局与 Android/Flutter 对齐：用户须知 + 勾选 + 账号密码；padding 24，间距 8/16/24/12
 import UIKit
 
 final class LoginViewController: UIViewController {
@@ -12,14 +12,14 @@ final class LoginViewController: UIViewController {
     private let contentStack: UIStackView = {
         let s = UIStackView()
         s.axis = .vertical
-        s.spacing = 16
+        s.spacing = 0
         s.alignment = .fill
         s.translatesAutoresizingMaskIntoConstraints = false
         return s
     }()
     private let termsTitleLabel: UILabel = {
         let l = UILabel()
-        l.font = .preferredFont(forTextStyle: .headline)
+        l.font = .preferredFont(forTextStyle: .title3)
         l.numberOfLines = 0
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
@@ -85,7 +85,7 @@ final class LoginViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        title = L10n.string("login")
+        title = L10n.string("appTitle")
         applyL10n()
         view.addSubview(scrollView)
         scrollView.addSubview(contentStack)
@@ -101,17 +101,31 @@ final class LoginViewController: UIViewController {
         agreeRow.alignment = .center
         agreeLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
+        func spacer(_ height: CGFloat) -> UIView {
+            let v = UIView()
+            v.translatesAutoresizingMaskIntoConstraints = false
+            v.heightAnchor.constraint(equalToConstant: height).isActive = true
+            return v
+        }
+
         contentStack.addArrangedSubview(termsStack)
+        contentStack.addArrangedSubview(spacer(16))
         contentStack.addArrangedSubview(agreeRow)
+        contentStack.addArrangedSubview(spacer(24))
         contentStack.addArrangedSubview(identityField)
+        contentStack.addArrangedSubview(spacer(12))
         contentStack.addArrangedSubview(passwordField)
-        contentStack.addArrangedSubview(loginButton)
-        contentStack.addArrangedSubview(goEnrollButton)
         contentStack.addArrangedSubview(errorLabel)
+        contentStack.addArrangedSubview(spacer(24))
+        contentStack.addArrangedSubview(loginButton)
+        contentStack.addArrangedSubview(spacer(16))
+        contentStack.addArrangedSubview(goEnrollButton)
         contentStack.addArrangedSubview(activity)
 
         identityField.heightAnchor.constraint(equalToConstant: 44).isActive = true
         passwordField.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        loginButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        errorLabel.isHidden = true
 
         agreeSwitch.addTarget(self, action: #selector(agreeChanged), for: .valueChanged)
         loginButton.addTarget(self, action: #selector(doLogin), for: .touchUpInside)
@@ -155,9 +169,11 @@ final class LoginViewController: UIViewController {
         let password = passwordField.text ?? ""
         if identity.isEmpty || password.isEmpty {
             errorLabel.text = L10n.string("errorEmptyCredentials")
+            errorLabel.isHidden = false
             return
         }
         errorLabel.text = nil
+        errorLabel.isHidden = true
         loginButton.isEnabled = false
         activity.startAnimating()
         Task {
@@ -170,6 +186,7 @@ final class LoginViewController: UIViewController {
                     showMain()
                 case .failure(let statusCode, let code):
                     errorLabel.text = "\(L10n.string("loginFail")): \(code ?? "\(statusCode ?? 0)")"
+                    errorLabel.isHidden = false
                     updateLoginButtonState()
                 }
             }
@@ -177,7 +194,6 @@ final class LoginViewController: UIViewController {
     }
 
     @objc private func goEnroll() {
-        // 纯原生暂未实现资料补全页，可后续扩展
         let alert = UIAlertController(title: nil, message: L10n.string("goEnroll"), preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: L10n.string("confirm"), style: .default))
         present(alert, animated: true)

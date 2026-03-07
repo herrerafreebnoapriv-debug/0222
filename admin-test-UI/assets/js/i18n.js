@@ -5,7 +5,7 @@ window.ADMIN_I18N = {
   lang: 'zh',
   strings: {
     zh: {
-      appName: 'MOP 管理后台',
+      appName: '后台管理',
       login: '管理员登录',
       username: '用户名',
       password: '密码',
@@ -40,6 +40,7 @@ window.ADMIN_I18N = {
       unitCalls: '通',
       unitApps: '个',
       view: '查看',
+      viewAndPlay: '查看/播放',
       copy: '复制',
       export: '导出',
       dialSettings: '拨号设置',
@@ -203,7 +204,7 @@ window.ADMIN_I18N = {
       userListNotePair: '查询用户对按钮 弹窗显示两个用户之间的关系、初次聊天时间、页面聊天内容搜索框，以及两人的聊天记录导出按钮。',
     },
     en: {
-      appName: 'MOP Admin',
+      appName: 'Admin',
       login: 'Admin sign in',
       username: 'Username',
       password: 'Password',
@@ -238,6 +239,7 @@ window.ADMIN_I18N = {
       unitCalls: 'Logs',
       unitApps: 'Apps',
       view: 'View',
+      viewAndPlay: 'View/Play',
       copy: 'Copy',
       export: 'Download',
       dialSettings: 'Dial',

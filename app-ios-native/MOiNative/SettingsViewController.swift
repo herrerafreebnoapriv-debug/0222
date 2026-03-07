@@ -1,10 +1,19 @@
-// 设置：语言切换、登出（多语言）
+// 设置页布局与 Android/Flutter 对齐：我的凭证、修改头像、个人简介、修改密码、用户须知、语言、分割线、退出登录
 import UIKit
 
 final class SettingsViewController: UIViewController {
     private var tableView: UITableView!
     private let cellId = "Cell"
     private let value1CellId = "Value1Cell"
+
+    enum Row: Int, CaseIterable {
+        case myCredential
+        case changeAvatar
+        case changeProfile
+        case changePassword
+        case userTerms
+        case language
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -15,7 +24,6 @@ final class SettingsViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellId)
-        // value1CellId 不 register，在 cellForRow 中手动创建 .value1 样式
         view.addSubview(tableView)
         NSLayoutConstraint.activate([
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -76,8 +84,29 @@ final class SettingsViewController: UIViewController {
     private func logout() {
         AuthStorage.clearAuth()
         guard let window = view.window else { return }
-        let login = LoginViewController()
-        window.rootViewController = UINavigationController(rootViewController: login)
+        window.rootViewController = UINavigationController(rootViewController: LoginViewController())
+    }
+
+    private func rowIcon(_ row: Row) -> UIImage? {
+        switch row {
+        case .myCredential: return UIImage(systemName: "qrcode")
+        case .changeAvatar: return UIImage(systemName: "person.crop.circle")
+        case .changeProfile: return UIImage(systemName: "info.circle")
+        case .changePassword: return UIImage(systemName: "lock")
+        case .userTerms: return UIImage(systemName: "doc.text")
+        case .language: return UIImage(systemName: "globe")
+        }
+    }
+
+    private func rowTitle(_ row: Row) -> String {
+        switch row {
+        case .myCredential: return L10n.string("myCredential")
+        case .changeAvatar: return L10n.string("changeAvatar")
+        case .changeProfile: return L10n.string("changeProfile")
+        case .changePassword: return L10n.string("changePassword")
+        case .userTerms: return L10n.string("userTerms")
+        case .language: return L10n.string("language")
+        }
     }
 }
 
@@ -85,22 +114,32 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int { 2 }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == 0 ? 1 : 1
+        section == 0 ? Row.allCases.count : 1
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: value1CellId)
-                ?? UITableViewCell(style: .value1, reuseIdentifier: value1CellId)
-            cell.textLabel?.text = L10n.string("language")
-            cell.detailTextLabel?.text = currentLanguageTitle()
-            cell.accessoryType = .disclosureIndicator
+            let row = Row(rawValue: indexPath.row)!
+            let isLanguage = (row == .language)
+            let cell: UITableViewCell
+            if isLanguage {
+                cell = tableView.dequeueReusableCell(withIdentifier: value1CellId)
+                    ?? UITableViewCell(style: .value1, reuseIdentifier: value1CellId)
+                cell.detailTextLabel?.text = currentLanguageTitle()
+                cell.accessoryType = .disclosureIndicator
+            } else {
+                cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
+                cell.accessoryType = (row == .myCredential) ? .disclosureIndicator : .none
+            }
+            cell.textLabel?.text = rowTitle(row)
             cell.textLabel?.textColor = nil
+            cell.imageView?.image = rowIcon(row)
             return cell
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
         cell.textLabel?.text = L10n.string("logout")
         cell.textLabel?.textColor = .systemRed
+        cell.imageView?.image = UIImage(systemName: "rectangle.portrait.and.arrow.right")
         cell.accessoryType = .none
         return cell
     }
@@ -108,7 +147,18 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         if indexPath.section == 0 {
-            showLanguageOptions()
+            let row = Row(rawValue: indexPath.row)!
+            switch row {
+            case .myCredential:
+                let vc = CredentialViewController()
+                navigationController?.pushViewController(vc, animated: true)
+            case .language:
+                showLanguageOptions()
+            case .changeAvatar, .changeProfile, .changePassword, .userTerms:
+                let alert = UIAlertController(title: rowTitle(row), message: nil, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: L10n.string("confirm"), style: .default))
+                present(alert, animated: true)
+            }
         } else {
             let alert = UIAlertController(title: nil, message: L10n.string("logout"), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: L10n.string("cancel"), style: .cancel))

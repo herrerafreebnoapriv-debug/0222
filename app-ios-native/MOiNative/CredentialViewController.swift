@@ -1,7 +1,8 @@
-// 凭证页：展示 mop 二维码、保存到相册、进入主界面（多语言）
+// 凭证页布局与 Android/Flutter 对齐：标题 + 24pt + QR 220 + 24pt + 保存/进入主界面
 import UIKit
 
 final class CredentialViewController: UIViewController {
+    private let titleLabel = UILabel()
     private let imageView = UIImageView()
     private let saveButton = UIButton(type: .system)
     private let enterButton = UIButton(type: .system)
@@ -11,6 +12,9 @@ final class CredentialViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = L10n.string("credentialTitle")
+        titleLabel.text = L10n.string("credentialTitle")
+        titleLabel.font = .preferredFont(forTextStyle: .title2)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         saveButton.setTitle(L10n.string("credentialSave"), for: .normal)
@@ -19,12 +23,15 @@ final class CredentialViewController: UIViewController {
         enterButton.setTitle(L10n.string("credentialEnterMain"), for: .normal)
         enterButton.translatesAutoresizingMaskIntoConstraints = false
         enterButton.addTarget(self, action: #selector(enterMain), for: .touchUpInside)
+        view.addSubview(titleLabel)
         view.addSubview(imageView)
         view.addSubview(saveButton)
         view.addSubview(enterButton)
         NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            imageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
             imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
             imageView.widthAnchor.constraint(equalToConstant: 220),
             imageView.heightAnchor.constraint(equalToConstant: 220),
             saveButton.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 24),

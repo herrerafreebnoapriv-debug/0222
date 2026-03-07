@@ -34,6 +34,7 @@
 		NAT136 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT131 /* L10n.swift */; };
 		NAT137 /* ConfigApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = NAT132 /* ConfigApi.swift */; };
 		NAT138 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = NAT135 /* Localizable.strings */; };
+		NAT13C /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = NAT13B /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -67,6 +68,8 @@
 		NAT132 /* ConfigApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigApi.swift; sourceTree = "<group>"; };
 		NAT133 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = "en.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		NAT134 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		NAT139 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = "en.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		NAT13A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +107,7 @@
 				NAT013 /* Assets.xcassets */,
 				NAT015 /* LaunchScreen.storyboard */,
 				NAT135 /* Localizable.strings */,
+				NAT13B /* InfoPlist.strings */,
 				NAT014 /* Info.plist */,
 			);
 			path = MOiNative;
@@ -154,6 +158,15 @@
 				NAT133 /* en */,
 			);
 			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		NAT13B /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				NAT13A /* zh-Hans */,
+				NAT139 /* en */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -213,6 +226,7 @@
 				NAT003 /* Assets.xcassets in Resources */,
 				NAT004 /* LaunchScreen.storyboard in Resources */,
 				NAT138 /* Localizable.strings in Resources */,
+				NAT13C /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

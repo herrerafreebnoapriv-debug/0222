@@ -1,3 +1,6 @@
+/* App */
+"appTitle" = "MOi";
+
 /* Login */
 "login" = "Login";
 "identityPlaceholder" = "Phone or username";
@@ -15,6 +18,10 @@
 
 /* Settings */
 "settings" = "Settings";
+"myCredential" = "My credential";
+"changeAvatar" = "Change avatar";
+"changeProfile" = "Profile";
+"changePassword" = "Change password";
 "language" = "Language";
 "logout" = "Logout";
 "langFollowSystem" = "Follow system";

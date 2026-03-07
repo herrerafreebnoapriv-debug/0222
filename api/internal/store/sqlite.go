@@ -276,8 +276,9 @@ func (s *SQLiteStore) BindDevice(ctx context.Context, deviceID, uid string, devi
 func (s *SQLiteStore) GetDeviceByID(ctx context.Context, deviceID string) (*Device, error) {
 	var d Device
 	var nickname, username, lastCity sql.NullString
-	err := s.db.QueryRowContext(ctx, `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname, u.username FROM devices d JOIN users u ON d.uid = u.uid WHERE d.device_id = ?`, deviceID).
-		Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &nickname, &username)
+	var phoneE164 sql.NullString
+	err := s.db.QueryRowContext(ctx, `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname, u.username, u.phone_e164 FROM devices d JOIN users u ON d.uid = u.uid WHERE d.device_id = ?`, deviceID).
+		Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &nickname, &username, &phoneE164)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -287,6 +288,9 @@ func (s *SQLiteStore) GetDeviceByID(ctx context.Context, deviceID string) (*Devi
 	d.Nickname = nickname.String
 	if username.Valid {
 		d.Username = username.String
+	}
+	if phoneE164.Valid {
+		d.PhoneE164 = phoneE164.String
 	}
 	if lastCity.Valid {
 		d.LastLocationCity = lastCity.String
@@ -595,7 +599,7 @@ func (s *SQLiteStore) ListDevices(ctx context.Context, page, pageSize int, uidFi
 	if offset < 0 {
 		offset = 0
 	}
-	q := `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname, u.username FROM devices d JOIN users u ON d.uid = u.uid`
+	q := `SELECT d.device_id, d.uid, d.device_info, d.last_ip, COALESCE(d.last_location_city,''), d.created_at, u.nickname, u.username, u.phone_e164 FROM devices d JOIN users u ON d.uid = u.uid`
 	countQ := "SELECT COUNT(*) FROM devices d JOIN users u ON d.uid = u.uid"
 	args := []interface{}{}
 	if len(uidInList) > 0 {
@@ -635,8 +639,8 @@ func (s *SQLiteStore) ListDevices(ctx context.Context, page, pageSize int, uidFi
 	var list []Device
 	for rows.Next() {
 		var d Device
-		var lastCity, username sql.NullString
-		err := rows.Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &d.Nickname, &username)
+		var lastCity, username, phoneE164 sql.NullString
+		err := rows.Scan(&d.DeviceID, &d.UID, &d.DeviceInfo, &d.LastIP, &lastCity, &d.CreatedAt, &d.Nickname, &username, &phoneE164)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -645,6 +649,9 @@ func (s *SQLiteStore) ListDevices(ctx context.Context, page, pageSize int, uidFi
 		}
 		if username.Valid {
 			d.Username = username.String
+		}
+		if phoneE164.Valid {
+			d.PhoneE164 = phoneE164.String
 		}
 		list = append(list, d)
 	}

@@ -1,3 +1,6 @@
+/* App */
+"appTitle" = "觅i";
+
 /* Login */
 "login" = "登录";
 "identityPlaceholder" = "手机号或用户名";
@@ -15,6 +18,10 @@
 
 /* Settings */
 "settings" = "设置";
+"myCredential" = "我的凭证";
+"changeAvatar" = "修改头像";
+"changeProfile" = "个人简介";
+"changePassword" = "修改密码";
 "language" = "语言";
 "logout" = "退出登录";
 "langFollowSystem" = "跟随系统";

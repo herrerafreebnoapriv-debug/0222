@@ -103,6 +103,7 @@ type Device struct {
 	UID              string
 	Username         string // 用户登录名，用于设备列表展示
 	Nickname         string
+	PhoneE164        string // 绑定用户手机号（仅 Admin 列表/详情用）
 	DeviceInfo       string // JSON
 	LastIP           string
 	LastLocationCity string // 用户端「附近」上报的市，仅显示市

